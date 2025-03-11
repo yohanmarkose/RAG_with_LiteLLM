@@ -7,3 +7,6 @@ requests
 redis
 uuid
 streamlit
+python-dotenv
+python-multipart
+docling
