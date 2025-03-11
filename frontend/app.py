@@ -44,18 +44,10 @@ def document_parser_page():
 
     if input_format == "WebURL":
         st.session_state.file_upload = None
-        tool = st.sidebar.selectbox("Choose a method to convert URL:", 
-                                    ["BeautifulSoup (OS)", "Diffbot (Enterprise)", "Docling"])
         st.session_state.text_url = st.text_input("Enter URL here")
         convert = st.button("Process", use_container_width=True)
     elif input_format == "PDF":
-        st.session_state.text_url = ""
-        tool = st.sidebar.selectbox("Choose a method to convert PDF:", 
-                                    ["PyMuPDF (OS)", "Azure Document Intelligence (Enterprise)", "Docling"])           
-        if tool == "Azure Document Intelligence (Enterprise)":
-            radio = st.radio("Choose a model :", ["Read", "Layout"])
-        else:
-            radio = None
+        st.session_state.text_url = ""         
         st.session_state.file_upload = st.file_uploader("Choose a PDF File", type="pdf", accept_multiple_files=False)    
         convert = st.button("Process", use_container_width=True)
         
@@ -65,7 +57,7 @@ def document_parser_page():
             if st.session_state.text_url:
                 if check_url(st.session_state.text_url):
                     st.success(f"The URL '{st.session_state.text_url}' exists and is accessible!")
-                    convert_web_to_markdown(tool, st.session_state.text_url)
+                    convert_web_to_markdown(st.session_state.text_url)
                 else:
                     st.error(f"The URL '{st.session_state.text_url}' does not exist or is not accessible.")
             else:
@@ -74,7 +66,7 @@ def document_parser_page():
         elif input_format == "PDF":
             if st.session_state.file_upload:
                 st.success(f"File '{st.session_state.file_upload.name}' uploaded successfully!")
-                convert_PDF_to_markdown(tool, st.session_state.file_upload, radio)
+                convert_PDF_to_markdown(st.session_state.file_upload)
             else:
                 st.info("Please upload a PDF file.")
             
@@ -200,19 +192,14 @@ def check_url(url):
     except requests.RequestException:
         return False
 
-def convert_web_to_markdown(tool, text_url):
+def convert_web_to_markdown(text_url):
     progress_bar = st.progress(0)  
     progress_text = st.empty()  
     
     progress_text.text("Starting conversion...")
     progress_bar.progress(25)
 
-    if tool == "BeautifulSoup (OS)":
-        response = requests.post(f"{API_URL}/scrape_url_os_bs", json={"url": text_url})
-    elif tool == "Diffbot (Enterprise)":
-        response = requests.post(f"{API_URL}/scrape_diffbot_en_url", json={"url": text_url})
-    elif tool == "Docling":
-        response = requests.post(f"{API_URL}/scrape-url-docling", json={"url": text_url})
+    response = requests.post(f"{API_URL}/scrape-url-docling", json={"url": text_url})
     
     progress_text.text("Processing request...")
     progress_bar.progress(50)
@@ -233,7 +220,7 @@ def convert_web_to_markdown(tool, text_url):
     progress_text.empty()
     progress_bar.empty()
         
-def convert_PDF_to_markdown(tool, file_upload, radio=None):    
+def convert_PDF_to_markdown(file_upload):    
     progress_bar = st.progress(0)
     progress_text = st.empty()
     
@@ -246,14 +233,8 @@ def convert_PDF_to_markdown(tool, file_upload, radio=None):
         
         progress_text.text("Sending file for processing...")
         progress_bar.progress(50)
-        
-        if tool == "PyMuPDF (OS)":
-            response = requests.post(f"{API_URL}/scrape_pdf_os", json={"file": base64_pdf, "file_name": file_upload.name, "model": ""})
-        elif tool == "Azure Document Intelligence (Enterprise)":
-            model = "read" if radio == "Read" else "layout"
-            response = requests.post(f"{API_URL}/azure-intdoc-process-pdf", json={"file": base64_pdf, "file_name": file_upload.name, "model": model})
-        elif tool == "Docling":
-            response = requests.post(f"{API_URL}/scrape_pdf_docling", json={"file": base64_pdf, "file_name": file_upload.name, "model": ""})
+
+        response = requests.post(f"{API_URL}/scrape_pdf_docling", json={"file": base64_pdf, "file_name": file_upload.name, "model": ""})
         
         progress_text.text("Processing document...")
         progress_bar.progress(75)
