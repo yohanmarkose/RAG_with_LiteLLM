@@ -46,7 +46,7 @@ def pdf_docling_converter(pdf_stream: io.BytesIO, base_path, s3_obj):
     )
     
     pdf_stream.seek(0)
-    with NamedTemporaryFile(suffix=".pdf", delete=False) as temp_file:
+    with NamedTemporaryFile(suffix=".pdf", delete=True) as temp_file:
         # Write the PDF bytes to a temporary file
         temp_file.write(pdf_stream.read())
         temp_file.flush()
