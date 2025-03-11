@@ -97,30 +97,16 @@ def chat_page():
     
     # File selection
     st.session_state.selected_files = st.sidebar.selectbox(
-        "Select Documents for Context",
+        "Select PDF for Context",
         options=available_files,
     )
     
     if not st.session_state.selected_files:
-        st.info("Please select at least one document from the sidebar to start chatting.")
+        st.info("Please select a pdf from the sidebar to start chatting.")
         return
     
-    # Preview selected files
-    if st.sidebar.checkbox("Preview Selected Documents"):
-        for file in st.session_state.selected_files:
-            with st.sidebar.expander(file):
-                try:
-                    response = requests.get(f"{API_URL}/file_content/{file}")
-                    if response.status_code == 200:
-                        content = response.json()["content"]
-                        st.markdown(content[:500] + "..." if len(content) > 500 else content)
-                    else:
-                        st.error(f"Error loading file content: {response.text}")
-                except Exception as e:
-                    st.error(f"Error: {e}")
-    
     # Summarize button
-    if st.sidebar.button("Summarize Selected Documents"):
+    if st.sidebar.button("Summarize"):
         with st.spinner("Generating summary..."):
             try:
                 response = requests.post(
@@ -140,7 +126,7 @@ def chat_page():
                 st.sidebar.error(f"Error: {e}")
     
     # Reset chat button
-    if st.sidebar.button("Reset Chat"):
+    if st.sidebar.button("New Chat"):
         st.session_state.messages = []
     
     # Display chat messages
@@ -257,8 +243,8 @@ def convert_PDF_to_markdown(file_upload):
 if __name__ == "__main__":
 # Set page configuration
     st.set_page_config(
-        page_title="Document Parser",  # Name of the app
-        layout="wide",              # Layout: "centered" or "wide"
-        initial_sidebar_state="expanded"  # Sidebar: "expanded" or "collapsed"
+        page_title="Document Parser",
+        layout="wide",
+        initial_sidebar_state="expanded"
     )    
     main()
