@@ -24,20 +24,22 @@ from features.web_extraction.docling_url_extractor import url_docling_converter
 from features.web_extraction import os_url_extractor_bs
 
 #Diffbot imports
-from features.web_extraction.diffbot_python_client.diffbot_client import DiffbotClient,DiffbotCrawl,DiffbotSpecificExtraction
+
+# from features.web_extraction.diffbot_python_client.diffbot_client import DiffbotClient,DiffbotCrawl,DiffbotSpecificExtraction
+
 # import pprint
 # import time
-import ast
+# import ast
 
 # Aure AI imports
-from features.pdf_extraction.azure_ai_intelligent_doc.read_azure_ai_model import read_azure_ai_model
+# from features.pdf_extraction.azure_ai_intelligent_doc.read_azure_ai_model import read_azure_ai_model
 
 # from services import s3
 from services.s3 import S3FileManager
 
 load_dotenv()
 AWS_BUCKET_NAME = os.getenv("AWS_BUCKET_NAME")
-DIFFTBOT_API_TOKEN = os.getenv("DIFFBOT_API_TOKEN") 
+# DIFFTBOT_API_TOKEN = os.getenv("DIFFBOT_API_TOKEN") 
 
 app = FastAPI()
 class URLInput(BaseModel):
@@ -46,6 +48,24 @@ class PdfInput(BaseModel):
     file: str
     file_name: str
     model: str
+
+@app.post("/select_pdfcontent")
+def process_url(url_input: URLInput):
+    md_result = os_url_extractor_bs.scrape_to_markdown(url_input.url)
+    timestamp = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
+    folder_name = url_to_folder_name(url_input.url)
+    base_path = f"web/os/{folder_name}_{timestamp}/"
+    s3_obj = S3FileManager(AWS_BUCKET_NAME, base_path)
+    s3_obj.upload_file(AWS_BUCKET_NAME, f"{s3_obj.base_path}/web_url.txt", str(url_input.url))
+
+    # md_result = convert_json_to_markdown(json_result) # Scrape the URL
+    s3_obj.upload_file(AWS_BUCKET_NAME, f"{s3_obj.base_path}/extracted_data.md", str(md_result))
+
+    return {
+        "message": f"Data Scraped and stored S3 \n Click the link to Download: https://{s3_obj.bucket_name}.s3.amazonaws.com/{s3_obj.base_path}/extracted_data.md",
+        "scraped_content": md_result
+    }
+
 
 @app.post("/scrape_url_os_bs")
 def process_url(url_input: URLInput):
@@ -60,7 +80,7 @@ def process_url(url_input: URLInput):
     s3_obj.upload_file(AWS_BUCKET_NAME, f"{s3_obj.base_path}/extracted_data.md", str(md_result))
 
     return {
-        "message": f"Data Scraped and stored in https://{s3_obj.bucket_name}.s3.amazonaws.com/{s3_obj.base_path}/extracted_data.md",
+        "message": f"Data Scraped and stored S3 \n Click the link to Download: https://{s3_obj.bucket_name}.s3.amazonaws.com/{s3_obj.base_path}/extracted_data.md",
         "scraped_content": md_result
     }
 
@@ -76,7 +96,7 @@ def process_pdf_os(uploaded_pdf: PdfInput):
     s3_obj.upload_file(AWS_BUCKET_NAME, f"{s3_obj.base_path}/{uploaded_pdf.file_name}", pdf_content)
     file_name, result = pdf_os_converter(pdf_stream, base_path, s3_obj)
     return {
-        "message": f"Data Scraped and stored in https://{s3_obj.bucket_name}.s3.amazonaws.com/{file_name}",
+        "message": f"Data Scraped and stored S3 \n Click the link to Download: https://{s3_obj.bucket_name}.s3.amazonaws.com/{file_name}",
         "scraped_content": result
     }
 
@@ -100,7 +120,7 @@ def process_docling_url(url_input: URLInput):
     print(base_path)
     print(file_name)
     return {
-        "message": f"Data Scraped and stored in https://{s3_obj.bucket_name}.s3.amazonaws.com/{file_name}",
+        "message": f"Data Scraped and stored S3 \n Click the link to Download: https://{s3_obj.bucket_name}.s3.amazonaws.com/{file_name}",
         "scraped_content": result  # Include the original scraped content in the response
     }
     
@@ -117,54 +137,54 @@ def process_pdf_docling(uploaded_pdf: PdfInput):
     s3_obj.upload_file(AWS_BUCKET_NAME, f"{s3_obj.base_path}/{uploaded_pdf.file_name}", pdf_content)
     file_name, result = pdf_docling_converter(pdf_stream, base_path, s3_obj)
     return {
-        "message": f"Data Scraped and stored in https://{s3_obj.bucket_name}.s3.amazonaws.com/{file_name}",
+        "message": f"Data Scraped and stored S3 \n Click the link to Download: https://{s3_obj.bucket_name}.s3.amazonaws.com/{file_name}",
         "scraped_content": result  # Include the original scraped content in the response
     }
 
-@app.post("/scrape_diffbot_en_url")
-def diffbot_process_url(url_input: URLInput):
-    diffbot = DiffbotClient()
-    token = DIFFTBOT_API_TOKEN
-    url = url_input.url
-    api = "analyze"
-    response = diffbot.request(url, token , api, fields=['title', 'text', 'images', 'pageUrl', 'type'])
-    if isinstance(response, str):
-        try:
-            response = ast.literal_eval(response)
-        except Exception as e:
-            print(f"Error converting response: {e}")
-        exit()
-    objects = response.get("objects", [])
-    extracted_data = extract_for_markdownrender(objects)
-    # Generate Markdown content
-    markdown_content = f"# Diffbot Extracted Content\n\n" 
-    markdown_content += f"**Date:** {datetime.now().strftime('%A, %B %d, %Y, %I:%M %p %Z')}\n\n"
-    for item in extracted_data:
-        markdown_content += f"### Title : \n{item['title']}\n"
-        markdown_content += f"### Page URL\n[{item['pageUrl']}]({item['pageUrl']})\n"
-        markdown_content += f"### Identified Page Type\n[{item['type']}]({item['type']})\n"
-        markdown_content += f"### Text Extracts \n{item['text']}\n"
-        markdown_content += f"### Images Extracts \n"
-        if 'images' in item and isinstance(item['images'], list):
-            for image in item['images']:
-                image_url = image['url']
-                image_title = image['title']
-                markdown_content += f"{image_title} : ![{image_title}]({image_url})\n\n"
-        else:
-            markdown_content += f"## Images Extracts : \n No Images Found\n"
-    #file_name = "diffbot_scraped_url.md"
+# @app.post("/scrape_diffbot_en_url")
+# def diffbot_process_url(url_input: URLInput):
+#     diffbot = DiffbotClient()
+#     token = DIFFTBOT_API_TOKEN
+#     url = url_input.url
+#     api = "analyze"
+#     response = diffbot.request(url, token , api, fields=['title', 'text', 'images', 'pageUrl', 'type'])
+#     if isinstance(response, str):
+#         try:
+#             response = ast.literal_eval(response)
+#         except Exception as e:
+#             print(f"Error converting response: {e}")
+#         exit()
+#     objects = response.get("objects", [])
+#     extracted_data = extract_for_markdownrender(objects)
+#     # Generate Markdown content
+#     markdown_content = f"# Diffbot Extracted Content\n\n" 
+#     markdown_content += f"**Date:** {datetime.now().strftime('%A, %B %d, %Y, %I:%M %p %Z')}\n\n"
+#     for item in extracted_data:
+#         markdown_content += f"### Title : \n{item['title']}\n"
+#         markdown_content += f"### Page URL\n[{item['pageUrl']}]({item['pageUrl']})\n"
+#         markdown_content += f"### Identified Page Type\n[{item['type']}]({item['type']})\n"
+#         markdown_content += f"### Text Extracts \n{item['text']}\n"
+#         markdown_content += f"### Images Extracts \n"
+#         if 'images' in item and isinstance(item['images'], list):
+#             for image in item['images']:
+#                 image_url = image['url']
+#                 image_title = image['title']
+#                 markdown_content += f"{image_title} : ![{image_title}]({image_url})\n\n"
+#         else:
+#             markdown_content += f"## Images Extracts : \n No Images Found\n"
+#     #file_name = "diffbot_scraped_url.md"
 
-    timestamp = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
-    folder_name = url_to_folder_name(url_input.url)
-    base_path = f"web/ent/{folder_name}_{timestamp}/"
-    s3_obj = S3FileManager(AWS_BUCKET_NAME, base_path)
-    s3_obj.upload_file(AWS_BUCKET_NAME, f"{s3_obj.base_path}/diffbot_scraped_url.txt", str(url_input.url))
-    s3_obj.upload_file(AWS_BUCKET_NAME, f"{s3_obj.base_path}/extracted_data.md", str(markdown_content))
+#     timestamp = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
+#     folder_name = url_to_folder_name(url_input.url)
+#     base_path = f"web/ent/{folder_name}_{timestamp}/"
+#     s3_obj = S3FileManager(AWS_BUCKET_NAME, base_path)
+#     s3_obj.upload_file(AWS_BUCKET_NAME, f"{s3_obj.base_path}/diffbot_scraped_url.txt", str(url_input.url))
+#     s3_obj.upload_file(AWS_BUCKET_NAME, f"{s3_obj.base_path}/extracted_data.md", str(markdown_content))
 
-    return {
-        "message": f"Data Scraped and stored in https://{s3_obj.bucket_name}.s3.amazonaws.com/{base_path}extracted_data.md",
-        "scraped_content": markdown_content  
-    }
+#     return {
+#         "message": f"Data Scraped and stored in https://{s3_obj.bucket_name}.s3.amazonaws.com/{base_path}extracted_data.md",
+#         "scraped_content": markdown_content  
+#     }
 
 
 @app.post("/azure-intdoc-process-pdf")
