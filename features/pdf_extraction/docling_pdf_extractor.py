@@ -3,7 +3,7 @@ import io
 from docling.document_converter import DocumentConverter
 from pydantic import BaseModel
 from docling.datamodel.base_models import InputFormat, DocumentStream
-from docling_core.types.doc import ImageRefMode
+from docling_core.types.doc import ImageRefMode, PictureItem
 from docling.document_converter import (
     DocumentConverter,
     PdfFormatOption,
@@ -57,7 +57,8 @@ def pdf_docling_converter(pdf_stream: io.BytesIO, base_path, s3_obj):
         md_file_name = f"{s3_obj.base_path}/extracted_data.md"
         # doc_stream = DocumentStream({"name": md_file_name, "stream": pdf_stream})
         conv_result = doc_converter.convert(temp_file.name)
-        final_md_content = conv_result.document.export_to_markdown(image_mode=ImageRefMode.EMBEDDED)
+        
+        final_md_content = document_convert(conv_result, base_path, s3_obj)
 
         # Upload the markdown file to S3   
         s3_obj.upload_file(s3_obj.bucket_name, md_file_name ,final_md_content.encode('utf-8'))
@@ -65,4 +66,41 @@ def pdf_docling_converter(pdf_stream: io.BytesIO, base_path, s3_obj):
     # Return the markdown file name and content
     return md_file_name, final_md_content
 
+def document_convert(conv_result, base_path, s3_obj):
+    final_md_content = conv_result.document.export_to_markdown(image_mode=ImageRefMode.PLACEHOLDER)
+    doc_filename = conv_result.input.file.stem
 
+    picture_counter = 0
+    for element, _level in conv_result.document.iterate_items():
+        if isinstance(element, PictureItem):
+            picture_counter += 1
+            
+            # Save the image to a file
+            element_image_filename = f"{s3_obj.base_path}/images/{doc_filename}_image_{picture_counter}.png"
+
+            # Upload the image file to S3   
+            # image_data = 
+
+            # with element_image_filename.open("wb") as fp:
+            #     element.get_image(conv_result.document).save(fp, "PNG")
+            
+            with NamedTemporaryFile(suffix=".png", delete=True) as image_file:
+                #image_file.write(image_data)
+                element.get_image(conv_result.document).save(image_file, "PNG")
+                image_file.flush()
+                                
+                # Upload the image file to S3   
+                with open(image_file.name, "rb") as fp:
+                    s3_obj.upload_file(s3_obj.bucket_name, element_image_filename, fp.read())
+                    
+                # s3_obj.upload_file(s3_obj.bucket_name, element_image_filename, image_file)
+                
+                element_image_link = f"https://{s3_obj.bucket_name}.s3.amazonaws.com/{f"{element_image_filename}"}"
+            
+                print(element_image_link)
+                
+            # Replace the image placeholder with the image filename
+            final_md_content = final_md_content.replace("<!-- image -->", f"![Image]({element_image_link})", 1)
+            
+
+    return final_md_content
