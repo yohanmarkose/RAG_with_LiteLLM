@@ -45,7 +45,7 @@ class SummarizeRequest(BaseModel):
     model: str
 class QuestionRequest(BaseModel):
     question: str
-    selected_files: List[str]
+    selected_files: str
     model: str
 
 @app.get("/")
@@ -90,48 +90,39 @@ def summarize_content(request: SummarizeRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error generating summary: {str(e)}")
 
-# @app.post("/ask_question")
-# def ask_question(request: QuestionRequest):
-#     """Answer a question based on the content of selected files"""
-#     try:
-#         # Get content from selected files
-#         base_path = base_path = f"pdf/os/"
-#         s3_obj = S3FileManager(AWS_BUCKET_NAME, base_path)
-#         context_content = ""
-#         for file in request.selected_files:
-#             content = load_s3_file_content(file)
-#             context_content += f"\n\n# {file}\n{content}"
+@app.post("/ask_question")
+def ask_question(request: QuestionRequest):
+    try:
+        # Get content from selected files
+        base_path = base_path = f"pdf/docling/"
+        s3_obj = S3FileManager(AWS_BUCKET_NAME, base_path)
+        file = f"{base_path}{request.selected_files}/extracted_data.md"
+        content = s3_obj.load_s3_file_content(file)
         
-#         if not context_content:
-#             raise HTTPException(status_code=400, detail="No content found in selected files")
+        if not content:
+            raise HTTPException(status_code=400, detail="No content found in selected files")
         
-#         # Prepare messages for LLM
-#         system_message = """You are a helpful assistant. Please respond based on the following documents:
-
-# {context}
-
-# If the question isn't related to the provided documents, politely inform the user that you can only answer questions about the selected documents.""".format(context=context_content)
+        # Prepare messages for LLM
+        system_message = """You are a helpful assistant. Please respond based on the following document:
+{context}
+If the question isn't related to the provided documents, politely inform the user that you can only answer questions about the selected documents.""".format(context=content)
         
-#         messages = [
-#             {"role": "system", "content": system_message},
-#             {"role": "user", "content": request.question}
-#         ]
+        messages = [
+            {"role": "system", "content": system_message},
+            {"role": "user", "content": request.question}
+        ]
         
-#         # Use litellm or equivalent for model-agnostic API calls
-#         from litellm import completion
+        response = completion(
+            model=request.model,
+            messages=messages
+        )
+        answer = response.choices[0].message.content
         
-#         response = completion(
-#             model=request.model,
-#             messages=messages
-#         )
-        
-#         answer = response.choices[0].message.content
-        
-#         return {
-#             "answer": answer,
-#         }
-#     except Exception as e:
-#         raise HTTPException(status_code=500, detail=f"Error answering question: {str(e)}")
+        return {
+            "answer": answer,
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error answering question: {str(e)}")
 
 # PDF Docling 
 @app.post("/scrape_pdf_docling")
