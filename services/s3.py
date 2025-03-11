@@ -25,6 +25,14 @@ class S3FileManager:
             Prefix=full_prefix
         )
         return [obj['Key'] for obj in response.get('Contents', [])]
+
+    def load_s3_file_content(self, file_name):
+        try:
+            response = self.s3.get_object(Bucket=self.bucket_name, Key=file_name)
+            content = response['Body'].read().decode('utf-8')
+            return content
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Error loading file {file_key}: {str(e)}")
     
     def upload_file(self, bucket_name, file_name, content):
         self.s3.put_object(Bucket=bucket_name, Key=file_name, Body=content)

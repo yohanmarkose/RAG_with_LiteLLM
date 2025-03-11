@@ -67,7 +67,7 @@ def pdf_os_converter(pdf_stream, base_path, s3_obj):
     final_md_content = "".join(md_content)
 
     timestamp = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
-    md_file_name = f"{s3_obj.base_path}/extracted_{timestamp}.md"
+    md_file_name = f"{s3_obj.base_path}/extracted_data.md"
 
     s3_obj.upload_file(s3_obj.bucket_name, md_file_name ,final_md_content.encode('utf-8'))
     return md_file_name, final_md_content
