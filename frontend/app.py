@@ -143,43 +143,43 @@ def chat_page():
     if st.sidebar.button("Reset Chat"):
         st.session_state.messages = []
     
-    # # Display chat messages
-    # for message in st.session_state.messages:
-    #     with st.chat_message(message["role"]):
-    #         st.markdown(message["content"])
+    # Display chat messages
+    for message in st.session_state.messages:
+        with st.chat_message(message["role"]):
+            st.markdown(message["content"])
     
-    # # Chat input
-    # if prompt := st.chat_input("Ask a question about the documents..."):
-    #     # Add user message
-    #     st.session_state.messages.append({"role": "user", "content": prompt})
+    # Chat input
+    if prompt := st.chat_input("Ask a question about the documents..."):
+        # Add user message
+        st.session_state.messages.append({"role": "user", "content": prompt})
         
-    #     with st.chat_message("user"):
-    #         st.markdown(prompt)
+        with st.chat_message("user"):
+            st.markdown(prompt)
         
-    #     with st.chat_message("assistant"):
-    #         with st.spinner("Thinking..."):
-    #             try:
-    #                 response = requests.post(
-    #                     f"{API_URL}/ask_question",
-    #                     json={
-    #                         "question": prompt,
-    #                         "selected_files": st.session_state.selected_files,
-    #                         "model": model_name
-    #                     }
-    #                 )
+        with st.chat_message("assistant"):
+            with st.spinner("Thinking..."):
+                try:
+                    response = requests.post(
+                        f"{API_URL}/ask_question",
+                        json={
+                            "question": prompt,
+                            "selected_files": st.session_state.selected_files,
+                            "model": model_name
+                        }
+                    )
                     
-    #                 if response.status_code == 200:
-    #                     answer = response.json()["answer"]
-    #                     st.markdown(answer)
-    #                     st.session_state.messages.append({"role": "assistant", "content": answer})
-    #                 else:
-    #                     error_message = f"Error: {response.text}"
-    #                     st.error(error_message)
-    #                     st.session_state.messages.append({"role": "assistant", "content": error_message})
-    #             except Exception as e:
-    #                 error_message = f"Error: {str(e)}"
-    #                 st.error(error_message)
-    #                 st.session_state.messages.append({"role": "assistant", "content": error_message})
+                    if response.status_code == 200:
+                        answer = response.json()["answer"]
+                        st.markdown(answer)
+                        st.session_state.messages.append({"role": "assistant", "content": answer})
+                    else:
+                        error_message = f"Error: {response.text}"
+                        st.error(error_message)
+                        st.session_state.messages.append({"role": "assistant", "content": error_message})
+                except Exception as e:
+                    error_message = f"Error: {str(e)}"
+                    st.error(error_message)
+                    st.session_state.messages.append({"role": "assistant", "content": error_message})
 
 
 
