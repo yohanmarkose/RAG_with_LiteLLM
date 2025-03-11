@@ -46,19 +46,17 @@ def pdf_docling_converter(pdf_stream: io.BytesIO, base_path, s3_obj):
     )
     
     pdf_stream.seek(0)
-    with NamedTemporaryFile(suffix=".pdf", delete=True) as temp_file:
+    with NamedTemporaryFile(suffix=".pdf", delete=False) as temp_file:
         # Write the PDF bytes to a temporary file
         temp_file.write(pdf_stream.read())
         temp_file.flush()
         print(Path(temp_file.name))
         # Convert the PDF file to markdown
         timestamp = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
-        md_file_name = f"{s3_obj.base_path}/extracted_{timestamp}.md"
+        # md_file_name = f"{s3_obj.base_path}/extracted_{timestamp}.md"
+        md_file_name = f"{s3_obj.base_path}/extracted_data.md"
         # doc_stream = DocumentStream({"name": md_file_name, "stream": pdf_stream})
         conv_result = doc_converter.convert(temp_file.name)
-        
-        # timestamp = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
-        # md_file_name = f"{s3_obj.base_path}/extracted_{timestamp}.md"
         final_md_content = conv_result.document.export_to_markdown(image_mode=ImageRefMode.EMBEDDED)
 
         # Upload the markdown file to S3   
