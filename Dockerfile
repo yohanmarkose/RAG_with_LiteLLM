@@ -17,8 +17,8 @@ COPY ./backend /app/backend
 COPY ./features /app/features
 COPY ./services /app/services
 
-# Set environment variables
-ENV API_PORT=8080
+# Expose port
+EXPOSE 8000
 
-# Command to run the application
-CMD ["uvicorn", "backend.app.main:app", "--host", "0.0.0.0", "--port", "8080"]
+# Run FastAPI application
+CMD ["uvicorn", "backend.app.main:app", "--host", "0.0.0.0", "--port", "8000"]

@@ -4,3 +4,6 @@ uvicorn
 python-dotenv
 openai
 requests
+redis
+uuid
+streamlit

@@ -1,0 +1,29 @@
+services:
+  redis:
+    image: redis:latest
+    container_name: redis
+    restart: always
+    ports:
+      - "6379:6379"
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: fastapi_backend
+    depends_on:
+      - redis
+    ports:
+      - "8000:8000"
+    environment:
+      - REDIS_HOST=redis
+
+  streamlit:
+    build:
+      context: .
+      dockerfile: Dockerfile.streamlit
+    container_name: streamlit_frontend
+    depends_on:
+      - backend
+    ports:
+      - "8501:8501"
