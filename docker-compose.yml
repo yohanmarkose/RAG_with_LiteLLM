@@ -6,6 +6,10 @@ services:
     ports:
       - "6379:6379"
     platform: linux/arm64
+    volumes:
+      - redis_data:/data
+    networks:
+      - backend
 
   backend:
     build:
@@ -14,13 +18,38 @@ services:
       platforms:
         - linux/arm64
     container_name: fastapi_backend
+    restart: always
     depends_on:
       - redis
+      - litellm
     ports:
       - "8000:8000"
     environment:
       - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - LITELLM_HOST=http://litellm:4000
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - SUPPORTED_MODELS=gpt-4o,gemini-1.5-pro
+    networks:
+      - backend
 
+  litellm:
+    image: ghcr.io/berriai/litellm:latest
+    container_name: litellm
+    restart: always
+    ports:
+      - "4000:4000"
+    environment:
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - LITELLM_MODEL=gpt-4o,gemini-1.5-pro
+      - LITELLM_ROUTE_OPENAI="openai/gpt-4o"  # Route OpenAI requests
+      - LITELLM_ROUTE_GEMINI="google/gemini-1.5-pro"  # Route Gemini requests
+    command: ["--model", "gemini-1.5-pro"]
+    networks:
+      - backend
+  
   streamlit:
     build:
       context: .
@@ -28,7 +57,18 @@ services:
       platforms:
         - linux/arm64
     container_name: streamlit_frontend
+    restart: always
     depends_on:
       - backend
     ports:
       - "8501:8501"
+    networks:
+      - backend
+
+volumes:
+  redis_data:
+    driver: local
+
+networks:
+  backend:
+    driver: bridge

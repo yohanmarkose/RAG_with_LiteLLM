@@ -15,8 +15,8 @@ import base64
 import requests
 from bs4 import BeautifulSoup
 
-from features.pdf_extraction.docling_pdf_extractor import pdf_docling_converter
-from features.web_extraction.docling_url_extractor import url_docling_converter
+from redis import Redis
+
 from features.pdf_extraction.docling_pdf_extractor import pdf_docling_converter
 from features.web_extraction.docling_url_extractor import url_docling_converter
 
@@ -24,11 +24,21 @@ from features.web_extraction.docling_url_extractor import url_docling_converter
 from services.s3 import S3FileManager
 
 load_dotenv()
+
 AWS_BUCKET_NAME = os.getenv("AWS_BUCKET_NAME")
 # DIFFTBOT_API_TOKEN = os.getenv("DIFFBOT_API_TOKEN") 
 OPENAI_API_KEY = os.environ["OPENAI_API_KEY"]
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+
+# Models Configuration (from environment variable or default)
+SUPPORTED_MODELS = os.getenv("SUPPORTED_MODELS", "gpt-4o,gemini-1.5-pro").split(",")
+
 
 app = FastAPI()
+
+# Redis client setup
+redis_client = Redis(host=os.getenv('REDIS_HOST', 'redis'), port=int(os.getenv('REDIS_PORT', 6379)))
+
 class URLInput(BaseModel):
     url: str
 
@@ -50,7 +60,7 @@ class QuestionRequest(BaseModel):
 
 @app.get("/")
 def read_root():
-    return {"message": "Document Chat API is running"}
+    return {"message": "Document Chat API: FastAPI Backend with Redis and LiteLLM is running"}
 
 @app.get("/select_pdfcontent", response_model=S3FileListResponse)
 def get_available_files():
@@ -173,13 +183,3 @@ def process_docling_url(url_input: URLInput):
         "scraped_content": result  # Include the original scraped content in the response
     }
     
-# To get url domain name from url
-def url_to_folder_name(url):
-    # Extract the main domain
-    match = re.search(r"https?://(?:www\.)?([^/]+)", url)
-    if match:
-        domain = match.group(1).replace("www.", "")
-    else:
-        return None
-    safe_folder_name = re.sub(r"[^a-zA-Z0-9_\-]", "_", domain)
-    return safe_folder_name
