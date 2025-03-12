@@ -16,6 +16,8 @@ import requests
 from bs4 import BeautifulSoup
 
 from redis import Redis
+import redis
+import uuid, time, json
 
 from features.pdf_extraction.docling_pdf_extractor import pdf_docling_converter
 from features.web_extraction.docling_url_extractor import url_docling_converter
@@ -37,8 +39,8 @@ SUPPORTED_MODELS = os.getenv("SUPPORTED_MODELS", "gpt-4o,gemini-1.5-pro").split(
 app = FastAPI()
 
 # Redis client setup
-redis_client = Redis(host=os.getenv('REDIS_HOST', 'redis'), port=int(os.getenv('REDIS_PORT', 6379)))
-
+# redis_client = Redis(host=os.getenv('REDIS_HOST', 'redis'), port=int(os.getenv('REDIS_PORT', 6379)))
+redis_client = redis.Redis(host="localhost", port=6379, db=0, decode_responses=True)
 class URLInput(BaseModel):
     url: str
 
@@ -167,8 +169,54 @@ def get_pdf_content(request: QuestionRequest):
     return content
 
 def generate_model_response(model, messages):
-    response = completion(
-        model=model,
-        messages=messages
-    )
-    return response.choices[0].message.content
+    # response = completion(
+    #     model=model,
+    #     messages=messages
+    # )
+    request_data = {
+        "id": str(uuid.uuid4()),  # Generate a unique request ID
+        "model": model,  # Replace with an available model for LiteLLM
+        "prompt": messages
+    }
+    
+    response = redis_communication(request_data)
+    
+    return response
+
+def redis_communication(request_data):
+    # Push request to Redis queue
+    redis_client.rpush("request_queue", json.dumps(request_data))
+    
+    print(f"Sample request {request_data['id']} pushed to Redis!")
+
+    # Poll Redis for the response
+    response_key = f"response:{request_data['id']}"
+    timeout = 30  # Maximum wait time in seconds
+    start_time = time.time()
+
+    print("Waiting for response...")
+
+    while time.time() - start_time < timeout:
+        response = redis_client.get(response_key)
+        
+        if response:
+            response = json.loads(response)
+            # print(f"Response received:\n{json.dumps(response, indent=2)}")
+            
+            # response = json.dumps(response, indent=2)
+            # Extract message content safely
+            if "choices" in response and isinstance(response["choices"], list):
+                message_content = response["choices"][0].get("message", {}).get("content", "No content found")
+                print(f"Generated Response: {message_content}")
+                return message_content
+            else:
+                print("Error: 'choices' field missing or invalid format in response")
+            
+            break  # Exit loop once response is received
+        
+        time.sleep(1)  # Wait before checking again
+
+    if not response:
+        return("Timeout: No response received within the specified time.")
+    
+    return "response.choices[0].message.content"
