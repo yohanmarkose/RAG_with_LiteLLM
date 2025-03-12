@@ -5,7 +5,7 @@ import requests, os, base64
 from litellm import completion
 from io import StringIO
 
-API_URL = "http://127.0.0.1:8000"
+API_URL = "http://backend:8000"
 
 
 if "page" not in st.session_state:

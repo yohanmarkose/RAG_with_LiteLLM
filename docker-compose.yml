@@ -5,11 +5,14 @@ services:
     restart: always
     ports:
       - "6379:6379"
+    platform: linux/arm64
 
   backend:
     build:
       context: .
       dockerfile: Dockerfile
+      platforms:
+        - linux/arm64
     container_name: fastapi_backend
     depends_on:
       - redis
@@ -22,6 +25,8 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.streamlit
+      platforms:
+        - linux/arm64
     container_name: streamlit_frontend
     depends_on:
       - backend
