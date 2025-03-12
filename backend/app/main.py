@@ -15,8 +15,10 @@ import base64
 import requests
 from bs4 import BeautifulSoup
 
-from features.pdf_extraction.docling_pdf_extractor import pdf_docling_converter
-from features.web_extraction.docling_url_extractor import url_docling_converter
+from redis import Redis
+import redis
+import uuid, time, json
+
 from features.pdf_extraction.docling_pdf_extractor import pdf_docling_converter
 from features.web_extraction.docling_url_extractor import url_docling_converter
 
@@ -24,11 +26,30 @@ from features.web_extraction.docling_url_extractor import url_docling_converter
 from services.s3 import S3FileManager
 
 load_dotenv()
+
 AWS_BUCKET_NAME = os.getenv("AWS_BUCKET_NAME")
 # DIFFTBOT_API_TOKEN = os.getenv("DIFFBOT_API_TOKEN") 
 OPENAI_API_KEY = os.environ["OPENAI_API_KEY"]
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+
+# Models Configuration (from environment variable or default)
+SUPPORTED_MODELS = os.getenv("SUPPORTED_MODELS", "gpt-4o,gemini-1.5-pro").split(",")
+
 
 app = FastAPI()
+
+# Redis client setup
+# redis_client = Redis(host=os.getenv('REDIS_HOST', 'redis'), port=int(os.getenv('REDIS_PORT', 6379)))
+redis_client = redis.Redis(host="localhost", port=6379, db=0, decode_responses=True)
+
+# Stream name in Redis
+REQUEST_STREAM_NAME = "request_stream"
+RESPONSE_STREAM_NAME = "response_stream"
+REQUEST_CONSUMER_GROUP = "request_group"
+RESPONSE_CONSUMER_GROUP = "request_group"
+REQUEST_CONSUMER_NAME = "Worker"
+RESPONSE_CONSUMER_NAME = "Response_Worker"
+
 class URLInput(BaseModel):
     url: str
 
@@ -50,7 +71,7 @@ class QuestionRequest(BaseModel):
 
 @app.get("/")
 def read_root():
-    return {"message": "Document Chat API is running"}
+    return {"message": "Document Chat API: FastAPI Backend with Redis and LiteLLM is running"}
 
 @app.get("/select_pdfcontent", response_model=S3FileListResponse)
 def get_available_files():
@@ -62,11 +83,8 @@ def get_available_files():
 @app.post("/summarize")
 def summarize_content(request: SummarizeRequest):
     try:
-        # Get content from selected files
-        base_path = base_path = f"pdf/docling/"
-        s3_obj = S3FileManager(AWS_BUCKET_NAME, base_path)
-        file = f"{base_path}{request.selected_files}/extracted_data.md"
-        content = s3_obj.load_s3_file_content(file)
+        
+        content = get_pdf_content(request)
 
         if not content:
             raise HTTPException(status_code=400, detail="No content found in selected files")
@@ -75,14 +93,9 @@ def summarize_content(request: SummarizeRequest):
             {"role": "system", "content": "You are a helpful assistant that summarizes document content."},
             {"role": "user", "content": f"Summarize the following document content in one sentence:\n\n{content}"}
         ]
-        
-        # Use litellm or equivalent for model-agnostic API calls
-        response = completion(
-            model=request.model,
-            messages=messages
-        )
-        
-        summary = response.choices[0].message.content
+                
+        print(request.model)
+        summary = generate_model_response(request.model, messages)
         
         return {
             "summary": summary,
@@ -93,11 +106,8 @@ def summarize_content(request: SummarizeRequest):
 @app.post("/ask_question")
 def ask_question(request: QuestionRequest):
     try:
-        # Get content from selected files
-        base_path = base_path = f"pdf/docling/"
-        s3_obj = S3FileManager(AWS_BUCKET_NAME, base_path)
-        file = f"{base_path}{request.selected_files}/extracted_data.md"
-        content = s3_obj.load_s3_file_content(file)
+        
+        content = get_pdf_content(request)
         
         if not content:
             raise HTTPException(status_code=400, detail="No content found in selected files")
@@ -112,11 +122,7 @@ If the question isn't related to the provided documents, politely inform the use
             {"role": "user", "content": request.question}
         ]
         
-        response = completion(
-            model=request.model,
-            messages=messages
-        )
-        answer = response.choices[0].message.content
+        answer = generate_model_response(request.model, messages) 
         
         return {
             "answer": answer,
@@ -125,7 +131,7 @@ If the question isn't related to the provided documents, politely inform the use
         raise HTTPException(status_code=500, detail=f"Error answering question: {str(e)}")
 
 # PDF Docling 
-@app.post("/scrape_pdf_docling")
+@app.post("/upload_pdf")
 def process_pdf_docling(uploaded_pdf: PdfInput):
     pdf_content = base64.b64decode(uploaded_pdf.file)
     # Convert pdf_content to a BytesIO stream for pymupdf
@@ -164,13 +170,89 @@ def process_docling_url(url_input: URLInput):
         "scraped_content": result  # Include the original scraped content in the response
     }
     
-# To get url domain name from url
-def url_to_folder_name(url):
-    # Extract the main domain
-    match = re.search(r"https?://(?:www\.)?([^/]+)", url)
-    if match:
-        domain = match.group(1).replace("www.", "")
-    else:
-        return None
-    safe_folder_name = re.sub(r"[^a-zA-Z0-9_\-]", "_", domain)
-    return safe_folder_name
+def get_pdf_content(request: QuestionRequest):
+    base_path = base_path = f"pdf/docling/"
+    s3_obj = S3FileManager(AWS_BUCKET_NAME, base_path)
+    file = f"{base_path}{request.selected_files}/extracted_data.md"
+    content = s3_obj.load_s3_file_content(file)
+    return content
+
+def generate_model_response(model, messages):
+    # response = completion(
+    #     model=model,
+    #     messages=messages
+    # )
+    request_data = {
+        "id": str(uuid.uuid4()),  # Generate a unique request ID
+        "model": model,  # Replace with an available model for LiteLLM
+        "prompt": messages
+    }
+    
+    response = redis_communication(request_data)
+    
+    return response
+
+def redis_communication(request_data):
+    # Push request to Redis queue
+    # redis_client.rpush("request_queue", json.dumps(request_data))
+    print("Pushing request to Redis Stream")
+    
+    # Serialize nested data (if any) before passing to Redis
+    for key, value in request_data.items():
+        if isinstance(value, (dict, list)):
+            request_data[key] = json.dumps(value)  # Convert dict/list to a JSON string
+        
+    redis_client.xadd(REQUEST_STREAM_NAME, request_data)
+    
+    print(f"Request {request_data['id']} pushed to Redis Stream!")
+
+    # Poll Redis for the response
+    response_key = f"response:{request_data['id']}"
+    timeout = 30  # Maximum wait time in seconds
+    start_time = time.time()
+
+    print("Waiting for response...")
+
+    while time.time() - start_time < timeout:
+
+        response_data = redis_client.xreadgroup(
+            RESPONSE_CONSUMER_GROUP, RESPONSE_CONSUMER_NAME, {RESPONSE_STREAM_NAME: ">"}, count=1, block=0
+        )
+        
+        if response_data:
+            # print(response_data)
+            for stream_name, message_data in response_data:
+                print(stream_name)
+                for message_id, data in message_data:
+                    if data['id'] == request_data['id']:
+                        # print(data['response'])
+                        response = json.loads(data['response'])
+                        redis_client.xack(RESPONSE_STREAM_NAME, RESPONSE_CONSUMER_GROUP, message_id)
+                        print("Response received successfully")
+                        # Extract message content safely
+                        if "choices" in response and isinstance(response["choices"], list):
+                            message_content = response["choices"][0].get("message", {}).get("content", "No content found")
+                            print(f"Generated Response: {message_content}")
+                            return message_content
+                        else:
+                            print("Error: 'choices' field missing or invalid format in response")
+                
+        # if response:
+        #     # response = json.loads(response)
+        #     response = json.loads(response[0][1][0][1])
+        #     if response["id"] == request_data["id"]:
+        #         # Extract message content safely
+        #         if "choices" in response and isinstance(response["choices"], list):
+        #             message_content = response["choices"][0].get("message", {}).get("content", "No content found")
+        #             print(f"Generated Response: {message_content}")
+        #             return message_content
+        #         else:
+        #             print("Error: 'choices' field missing or invalid format in response")
+            
+        #     break  # Exit loop once response is received
+        
+
+    # if not response:
+    #     return("Timeout: No response received within the specified time.")
+    
+    return "response.choices[0].message.content"
