@@ -5,7 +5,7 @@ import requests, os, base64
 from litellm import completion
 from io import StringIO
 
-API_URL = "http://backend:8000"
+API_URL = "http://localhost:8000"
 
 
 if "page" not in st.session_state:
@@ -88,6 +88,7 @@ def chat_page():
     model_options = {
         "OpenAI": "gpt-4o-mini",
         "Anthropic": "claude-2",
+        "Gemini": "gemini/gemini-1.5-pro",
         "HuggingFace": "huggingface/facebook/blenderbot-400M-distill"
     }
 
@@ -220,7 +221,7 @@ def convert_PDF_to_markdown(file_upload):
         progress_text.text("Sending file for processing...")
         progress_bar.progress(50)
 
-        response = requests.post(f"{API_URL}/scrape_pdf_docling", json={"file": base64_pdf, "file_name": file_upload.name, "model": ""})
+        response = requests.post(f"{API_URL}/upload_pdf", json={"file": base64_pdf, "file_name": file_upload.name, "model": ""})
         
         progress_text.text("Processing document...")
         progress_bar.progress(75)

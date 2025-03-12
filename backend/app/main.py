@@ -72,11 +72,8 @@ def get_available_files():
 @app.post("/summarize")
 def summarize_content(request: SummarizeRequest):
     try:
-        # Get content from selected files
-        base_path = base_path = f"pdf/docling/"
-        s3_obj = S3FileManager(AWS_BUCKET_NAME, base_path)
-        file = f"{base_path}{request.selected_files}/extracted_data.md"
-        content = s3_obj.load_s3_file_content(file)
+        
+        content = get_pdf_content(request)
 
         if not content:
             raise HTTPException(status_code=400, detail="No content found in selected files")
@@ -85,14 +82,9 @@ def summarize_content(request: SummarizeRequest):
             {"role": "system", "content": "You are a helpful assistant that summarizes document content."},
             {"role": "user", "content": f"Summarize the following document content in one sentence:\n\n{content}"}
         ]
-        
-        # Use litellm or equivalent for model-agnostic API calls
-        response = completion(
-            model=request.model,
-            messages=messages
-        )
-        
-        summary = response.choices[0].message.content
+                
+        print(request.model)
+        summary = generate_model_response(request.model, messages)
         
         return {
             "summary": summary,
@@ -103,11 +95,8 @@ def summarize_content(request: SummarizeRequest):
 @app.post("/ask_question")
 def ask_question(request: QuestionRequest):
     try:
-        # Get content from selected files
-        base_path = base_path = f"pdf/docling/"
-        s3_obj = S3FileManager(AWS_BUCKET_NAME, base_path)
-        file = f"{base_path}{request.selected_files}/extracted_data.md"
-        content = s3_obj.load_s3_file_content(file)
+        
+        content = get_pdf_content(request)
         
         if not content:
             raise HTTPException(status_code=400, detail="No content found in selected files")
@@ -122,11 +111,7 @@ If the question isn't related to the provided documents, politely inform the use
             {"role": "user", "content": request.question}
         ]
         
-        response = completion(
-            model=request.model,
-            messages=messages
-        )
-        answer = response.choices[0].message.content
+        answer = generate_model_response(request.model, messages) 
         
         return {
             "answer": answer,
@@ -135,7 +120,7 @@ If the question isn't related to the provided documents, politely inform the use
         raise HTTPException(status_code=500, detail=f"Error answering question: {str(e)}")
 
 # PDF Docling 
-@app.post("/scrape_pdf_docling")
+@app.post("/upload_pdf")
 def process_pdf_docling(uploaded_pdf: PdfInput):
     pdf_content = base64.b64decode(uploaded_pdf.file)
     # Convert pdf_content to a BytesIO stream for pymupdf
@@ -174,3 +159,16 @@ def process_docling_url(url_input: URLInput):
         "scraped_content": result  # Include the original scraped content in the response
     }
     
+def get_pdf_content(request: QuestionRequest):
+    base_path = base_path = f"pdf/docling/"
+    s3_obj = S3FileManager(AWS_BUCKET_NAME, base_path)
+    file = f"{base_path}{request.selected_files}/extracted_data.md"
+    content = s3_obj.load_s3_file_content(file)
+    return content
+
+def generate_model_response(model, messages):
+    response = completion(
+        model=model,
+        messages=messages
+    )
+    return response.choices[0].message.content
