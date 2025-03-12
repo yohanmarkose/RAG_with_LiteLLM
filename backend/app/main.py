@@ -35,7 +35,6 @@ GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 # Models Configuration (from environment variable or default)
 SUPPORTED_MODELS = os.getenv("SUPPORTED_MODELS", "gpt-4o,gemini-1.5-pro").split(",")
 
-
 app = FastAPI()
 
 # Redis client setup
@@ -178,10 +177,6 @@ def get_pdf_content(request: QuestionRequest):
     return content
 
 def generate_model_response(model, messages):
-    # response = completion(
-    #     model=model,
-    #     messages=messages
-    # )
     request_data = {
         "id": str(uuid.uuid4()),  # Generate a unique request ID
         "model": model,  # Replace with an available model for LiteLLM
@@ -194,7 +189,6 @@ def generate_model_response(model, messages):
 
 def redis_communication(request_data):
     # Push request to Redis queue
-    # redis_client.rpush("request_queue", json.dumps(request_data))
     print("Pushing request to Redis Stream")
     
     # Serialize nested data (if any) before passing to Redis
@@ -237,22 +231,5 @@ def redis_communication(request_data):
                         else:
                             print("Error: 'choices' field missing or invalid format in response")
                 
-        # if response:
-        #     # response = json.loads(response)
-        #     response = json.loads(response[0][1][0][1])
-        #     if response["id"] == request_data["id"]:
-        #         # Extract message content safely
-        #         if "choices" in response and isinstance(response["choices"], list):
-        #             message_content = response["choices"][0].get("message", {}).get("content", "No content found")
-        #             print(f"Generated Response: {message_content}")
-        #             return message_content
-        #         else:
-        #             print("Error: 'choices' field missing or invalid format in response")
-            
-        #     break  # Exit loop once response is received
-        
-
-    # if not response:
-    #     return("Timeout: No response received within the specified time.")
     
     return "response.choices[0].message.content"
