@@ -1,5 +1,6 @@
 litellm
 openai
+pydantic
 fastapi
 uvicorn
 bs4
