@@ -7,3 +7,4 @@ requests
 redis
 uuid
 streamlit
+docling
