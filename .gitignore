@@ -33,4 +33,5 @@ htmlcov/
 *.log
 *.tmp
 *.swp
+*dump*
 .DS_Store
