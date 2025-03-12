@@ -1,12 +1,15 @@
 litellm
 openai
+pydantic
 fastapi
 uvicorn
 bs4
 requests
 redis
 uuid
-streamlit
 python-dotenv
-python-multipart
+boto3
+pandas
+numpy
+asyncio
 docling
