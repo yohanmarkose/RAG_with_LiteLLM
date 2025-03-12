@@ -41,6 +41,15 @@ app = FastAPI()
 # Redis client setup
 # redis_client = Redis(host=os.getenv('REDIS_HOST', 'redis'), port=int(os.getenv('REDIS_PORT', 6379)))
 redis_client = redis.Redis(host="localhost", port=6379, db=0, decode_responses=True)
+
+# Stream name in Redis
+REQUEST_STREAM_NAME = "request_stream"
+RESPONSE_STREAM_NAME = "response_stream"
+REQUEST_CONSUMER_GROUP = "request_group"
+RESPONSE_CONSUMER_GROUP = "request_group"
+REQUEST_CONSUMER_NAME = "Worker"
+RESPONSE_CONSUMER_NAME = "Response_Worker"
+
 class URLInput(BaseModel):
     url: str
 
@@ -185,9 +194,17 @@ def generate_model_response(model, messages):
 
 def redis_communication(request_data):
     # Push request to Redis queue
-    redis_client.rpush("request_queue", json.dumps(request_data))
+    # redis_client.rpush("request_queue", json.dumps(request_data))
+    print("Pushing request to Redis Stream")
     
-    print(f"Sample request {request_data['id']} pushed to Redis!")
+    # Serialize nested data (if any) before passing to Redis
+    for key, value in request_data.items():
+        if isinstance(value, (dict, list)):
+            request_data[key] = json.dumps(value)  # Convert dict/list to a JSON string
+        
+    redis_client.xadd(REQUEST_STREAM_NAME, request_data)
+    
+    print(f"Request {request_data['id']} pushed to Redis Stream!")
 
     # Poll Redis for the response
     response_key = f"response:{request_data['id']}"
@@ -197,26 +214,45 @@ def redis_communication(request_data):
     print("Waiting for response...")
 
     while time.time() - start_time < timeout:
-        response = redis_client.get(response_key)
-        
-        if response:
-            response = json.loads(response)
-            # print(f"Response received:\n{json.dumps(response, indent=2)}")
-            
-            # response = json.dumps(response, indent=2)
-            # Extract message content safely
-            if "choices" in response and isinstance(response["choices"], list):
-                message_content = response["choices"][0].get("message", {}).get("content", "No content found")
-                print(f"Generated Response: {message_content}")
-                return message_content
-            else:
-                print("Error: 'choices' field missing or invalid format in response")
-            
-            break  # Exit loop once response is received
-        
-        time.sleep(1)  # Wait before checking again
 
-    if not response:
-        return("Timeout: No response received within the specified time.")
+        response_data = redis_client.xreadgroup(
+            RESPONSE_CONSUMER_GROUP, RESPONSE_CONSUMER_NAME, {RESPONSE_STREAM_NAME: ">"}, count=1, block=0
+        )
+        
+        if response_data:
+            # print(response_data)
+            for stream_name, message_data in response_data:
+                print(stream_name)
+                for message_id, data in message_data:
+                    if data['id'] == request_data['id']:
+                        # print(data['response'])
+                        response = json.loads(data['response'])
+                        redis_client.xack(RESPONSE_STREAM_NAME, RESPONSE_CONSUMER_GROUP, message_id)
+                        print("Response received successfully")
+                        # Extract message content safely
+                        if "choices" in response and isinstance(response["choices"], list):
+                            message_content = response["choices"][0].get("message", {}).get("content", "No content found")
+                            print(f"Generated Response: {message_content}")
+                            return message_content
+                        else:
+                            print("Error: 'choices' field missing or invalid format in response")
+                
+        # if response:
+        #     # response = json.loads(response)
+        #     response = json.loads(response[0][1][0][1])
+        #     if response["id"] == request_data["id"]:
+        #         # Extract message content safely
+        #         if "choices" in response and isinstance(response["choices"], list):
+        #             message_content = response["choices"][0].get("message", {}).get("content", "No content found")
+        #             print(f"Generated Response: {message_content}")
+        #             return message_content
+        #         else:
+        #             print("Error: 'choices' field missing or invalid format in response")
+            
+        #     break  # Exit loop once response is received
+        
+
+    # if not response:
+    #     return("Timeout: No response received within the specified time.")
     
     return "response.choices[0].message.content"
