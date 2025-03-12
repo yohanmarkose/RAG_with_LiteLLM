@@ -53,8 +53,9 @@ def url_docling_converter(web_stream, base_url, base_path, s3_obj):
         print(Path(temp_file.name))
         
         # Convert the PDF file to markdown
-        timestamp = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
-        md_file_name = f"{s3_obj.base_path}/extracted_{timestamp}.md"
+        # timestamp = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
+        # md_file_name = f"{s3_obj.base_path}/extracted_{timestamp}.md"
+        md_file_name = f"{s3_obj.base_path}/extracted_data.md"
         conv_result = doc_converter.convert(temp_file.name)
         final_md_content = conv_result.document.export_to_markdown(image_mode=ImageRefMode.REFERENCED)
         temp_file.seek(0)
