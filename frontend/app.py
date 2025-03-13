@@ -1,9 +1,14 @@
 import time
 import streamlit as st
 import requests, os, base64
-
+import pandas as pd
 from litellm import completion
 from io import StringIO
+from dotenv import load_dotenv
+from athina_client.datasets import Dataset
+from athina_client.keys import AthinaApiKey
+
+load_dotenv()
 
 API_URL = "http://localhost:8000"
 
@@ -30,13 +35,43 @@ if 'file_selected' not in st.session_state:
 def main():
     # Set up navigation
     st.sidebar.header("Main Menu")
-    page = st.sidebar.radio("Choose a page:", ["Document Parser", "Chat with Documents"])
+    page = st.sidebar.radio("Choose a page:", ["Document Parser", "Chat with Documents","LLM Logging"])
     st.session_state.page = page
     
     if page == "Document Parser":
         document_parser_page()
     elif page == "Chat with Documents":
         chat_page()
+    elif page == "LLM Logging":
+        athina_log_page()
+
+def athina_log_page():
+    ATHINA_API_KEY = os.environ["ATHINA_API_KEY"]
+
+    if ATHINA_API_KEY:
+        AthinaApiKey.set_key(ATHINA_API_KEY)
+    else:
+        st.error("Athina API Key is not set. Please set the key in your environment variables.")
+
+    st.title("Athina Logs Viewer")
+
+    RECENT_50_LOGS = "RECENT_50_LOGS" 
+
+    try:
+        # Fetch dataset
+        dataset = Dataset.get_dataset_by_id(dataset_id=RECENT_50_LOGS)
+
+        # Convert to DataFrame
+        df = pd.DataFrame(dataset.data)  # Assuming dataset.data is a list of dicts
+
+        # Display dataset
+        st.write("### Recent 50 Logs:")
+        st.dataframe(df)  # Streamlit's built-in DataFrame viewer
+
+    except Exception as e:
+        st.error(f"Failed to get dataset: {e}")
+
+
 
 def document_parser_page():
     # Set the title of the app
