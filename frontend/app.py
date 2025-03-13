@@ -9,7 +9,6 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-load_dotenv()
 
 API_URL = os.getenv("API_DNS")
 # API_URL = "http://localhost:8000"
@@ -37,13 +36,32 @@ def main():
     # Set up navigation
     st.sidebar.header("Main Menu")
 
-    page = st.sidebar.radio("Choose a page:", ["Document Parser", "Chat with Documents"])
+    page = st.sidebar.radio("Choose a page:", ["Document Parser", "Chat with Documents","Logging Metrics"])
     
     st.session_state.page = page    
     if page == "Document Parser":
         document_parser_page()
     elif page == "Chat with Documents":
         chat_page()
+    elif page == "Logging Metrics":
+        athina_logging()
+
+def athina_logging():
+    import streamlit as st
+
+    st.title("Athina Logging 📊")
+
+    st.info("⚠️ If you have trouble observe the logs open [Athina AI](https://app.athina.ai/) or try logging in via Email OTP option")
+    ATHINA_DATASET_URL = os.getenv("ATHINA_DATASET_URL")
+
+    st.markdown(
+        f"""
+        <iframe src="{ATHINA_DATASET_URL}" width="100%" height="700px" style="border:none;"></iframe>
+        """,
+        unsafe_allow_html=True,
+    )
+
+ 
     
 def document_parser_page():
     # Set the title of the app
