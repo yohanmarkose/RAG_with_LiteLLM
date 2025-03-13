@@ -8,9 +8,7 @@ from datetime import datetime
 import base64
 # Docling imports
 from bs4 import BeautifulSoup
-
 from features.pdf_extraction.docling_pdf_extractor import pdf_docling_converter
-from features.web_extraction.docling_url_extractor import url_docling_converter
 
 # from services import s3
 from services.s3 import S3FileManager

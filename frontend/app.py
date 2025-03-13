@@ -49,13 +49,14 @@ def main():
 def athina_logging():
     import streamlit as st
 
-    st.title("Athina Logging")
+    st.title("Athina Logging 📊")
 
     st.info("⚠️ If you have trouble observe the logs open [Athina AI](https://app.athina.ai/) or try logging in via Email OTP option")
+    ATHINA_DATASET_URL = os.getenv("ATHINA_DATASET_URL")
 
     st.markdown(
-        """
-        <iframe src="https://app.athina.ai/develop/c802630c-29ee-4387-b105-1d05a82b8ebb/share" width="100%" height="700px" style="border:none;"></iframe>
+        f"""
+        <iframe src="{ATHINA_DATASET_URL}" width="100%" height="700px" style="border:none;"></iframe>
         """,
         unsafe_allow_html=True,
     )
