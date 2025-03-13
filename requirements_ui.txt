@@ -1,5 +1,0 @@
-litellm
-openai
-bs4
-requests
-streamlit
