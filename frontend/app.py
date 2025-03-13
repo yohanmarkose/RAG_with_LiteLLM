@@ -1,3 +1,4 @@
+import json
 import time
 import streamlit as st
 import requests, os, base64
@@ -5,8 +6,6 @@ import pandas as pd
 from litellm import completion
 from io import StringIO
 from dotenv import load_dotenv
-from athina_client.datasets import Dataset
-from athina_client.keys import AthinaApiKey
 
 load_dotenv()
 
@@ -35,86 +34,35 @@ if 'file_selected' not in st.session_state:
 def main():
     # Set up navigation
     st.sidebar.header("Main Menu")
-    page = st.sidebar.radio("Choose a page:", ["Document Parser", "Chat with Documents","LLM Logging"])
+    page = st.sidebar.radio("Choose a page:", ["Document Parser", "Chat with Documents"])
     st.session_state.page = page
     
     if page == "Document Parser":
         document_parser_page()
     elif page == "Chat with Documents":
         chat_page()
-    elif page == "LLM Logging":
-        athina_log_page()
-
-def athina_log_page():
-    ATHINA_API_KEY = os.environ["ATHINA_API_KEY"]
-
-    if ATHINA_API_KEY:
-        AthinaApiKey.set_key(ATHINA_API_KEY)
-    else:
-        st.error("Athina API Key is not set. Please set the key in your environment variables.")
-
-    st.title("Athina Logs Viewer")
-
-    RECENT_50_LOGS = "RECENT_50_LOGS" 
-
-    try:
-        # Fetch dataset
-        dataset = Dataset.get_dataset_by_id(dataset_id=RECENT_50_LOGS)
-
-        # Convert to DataFrame
-        df = pd.DataFrame(dataset.data)  # Assuming dataset.data is a list of dicts
-
-        # Display dataset
-        st.write("### Recent 50 Logs:")
-        st.dataframe(df)  # Streamlit's built-in DataFrame viewer
-
-    except Exception as e:
-        st.error(f"Failed to get dataset: {e}")
-
 
 
 def document_parser_page():
     # Set the title of the app
-    st.title("Markdown Chat - LLM")
-    # Add a sidebar
-    st.sidebar.header("Main Menu")
-    input_format = st.sidebar.selectbox("Choose a format:", ["WebURL", "PDF"])
-    
-    if "text_url" not in st.session_state:
-        st.session_state.text_url = ""
+    st.title("Select PDF for Parsing... 📃")
+            
     if "file_upload" not in st.session_state:
         st.session_state.file_upload = None
-
-    if input_format == "WebURL":
-        st.session_state.file_upload = None
-        st.session_state.text_url = st.text_input("Enter URL here")
-        convert = st.button("Process", use_container_width=True)
-    elif input_format == "PDF":
-        st.session_state.text_url = ""         
-        st.session_state.file_upload = st.file_uploader("Choose a PDF File", type="pdf", accept_multiple_files=False)    
-        convert = st.button("Process", use_container_width=True)
+      
+    st.session_state.file_upload = st.file_uploader("Choose a PDF File", type="pdf", accept_multiple_files=False)    
+    convert = st.button("Process", use_container_width=True)
         
     # Define what happens on each page
     if convert:
-        if input_format == "WebURL":
-            if st.session_state.text_url:
-                if check_url(st.session_state.text_url):
-                    st.success(f"The URL '{st.session_state.text_url}' exists and is accessible!")
-                    convert_web_to_markdown(st.session_state.text_url)
-                else:
-                    st.error(f"The URL '{st.session_state.text_url}' does not exist or is not accessible.")
-            else:
-                st.info("Please enter a URL.")
-    
-        elif input_format == "PDF":
-            if st.session_state.file_upload:
-                st.success(f"File '{st.session_state.file_upload.name}' uploaded successfully!")
-                convert_PDF_to_markdown(st.session_state.file_upload)
-            else:
-                st.info("Please upload a PDF file.")
+        if st.session_state.file_upload:
+            st.success(f"File '{st.session_state.file_upload.name}' uploaded successfully!")
+            convert_PDF_to_markdown(st.session_state.file_upload)
+        else:
+            st.info("Please upload a PDF file.")
             
 def chat_page():
-    st.title("Chat with Documents")
+    st.title("Chat with your parsed documents... 🤖")
 
     # Get available files from API
     try:
