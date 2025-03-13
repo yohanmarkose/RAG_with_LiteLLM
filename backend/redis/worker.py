@@ -7,6 +7,9 @@ import os
 
 load_dotenv()
 
+litellm.success_callback = ["athina"]
+
+
 # Initialize Redis client
 # redis_client = redis.Redis(host="redis-18117.c261.us-east-1-4.ec2.redns.redis-cloud.com", port=18117)
 
@@ -40,7 +43,7 @@ try:
 except redis.exceptions.ResponseError:
     # Consumer group already exists
     pass
-
+ATHINA_API_KEY = os.environ["ATHINA_API_KEY"]
 OPENAI_API_KEY = os.environ["OPENAI_API_KEY"]
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
@@ -63,7 +66,7 @@ def process_requests():
 
                     response = litellm.completion(
                         model=model,
-                        messages=prompt,
+                        messages=prompt
                     )
                     
                     # Prepare the response data to be added to the response stream
