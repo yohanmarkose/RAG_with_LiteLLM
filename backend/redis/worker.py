@@ -45,7 +45,7 @@ except redis.exceptions.ResponseError:
 ATHINA_API_KEY = os.environ["ATHINA_API_KEY"]
 OPENAI_API_KEY = os.environ["OPENAI_API_KEY"]
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-
+XAI_API_KEY = os.getenv("XAI_API_KEY")
 HUGGINGFACE_API_KEY = os.getenv("HUGGINGFACE_API_KEY")
 
 def process_requests():
