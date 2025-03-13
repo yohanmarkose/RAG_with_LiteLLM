@@ -1,8 +1,7 @@
 import os
 from litellm import completion
 
-XAI_API_KEY = "api"  # Replace with your key
-os.environ["XAI_API_KEY"] = XAI_API_KEY  # Set it manually
+XAI_API_KEY = os.getenv("XAI_API_KEY")
 
 response = completion(
     model="xai/grok-2-latest",
