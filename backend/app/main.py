@@ -1,22 +1,13 @@
-from fastapi import FastAPI, UploadFile, File, HTTPException, Form, Body
-from fastapi.responses import JSONResponse, FileResponse
+from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
-from typing import List, Optional, Dict, Any
-from litellm import completion
-
+from typing import List
 from io import BytesIO
-import os
+import os, requests, redis, uuid, time, json
 from dotenv import load_dotenv
-import re
 from datetime import datetime
 import base64
-
 # Docling imports
-import requests
 from bs4 import BeautifulSoup
-
-import redis
-import uuid, time, json
 
 from features.pdf_extraction.docling_pdf_extractor import pdf_docling_converter
 from features.web_extraction.docling_url_extractor import url_docling_converter
@@ -26,13 +17,10 @@ from services.s3 import S3FileManager
 
 load_dotenv()
 
+# Environment Variables
 AWS_BUCKET_NAME = os.getenv("AWS_BUCKET_NAME")
-# DIFFTBOT_API_TOKEN = os.getenv("DIFFBOT_API_TOKEN") 
-OPENAI_API_KEY = os.environ["OPENAI_API_KEY"]
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-
-# Models Configuration (from environment variable or default)
-SUPPORTED_MODELS = os.getenv("SUPPORTED_MODELS", "gpt-4o,gemini-1.5-pro").split(",")
 
 app = FastAPI()
 
@@ -83,7 +71,9 @@ def read_root():
 
 @app.get("/list_pdfcontent", response_model=S3FileListResponse)
 def get_available_files():
-    base_path = base_path = f"pdf/docling/"
+    print("Getting available files")
+    base_path = f"pdf/docling/"
+    print(base_path)
     s3_obj = S3FileManager(AWS_BUCKET_NAME, base_path)
     files = list({file.split('/')[-2] for file in s3_obj.list_files()})
     return {"files": files}
@@ -236,6 +226,7 @@ def redis_communication(request_data):
                 for message_id, data in message_data:
                     if data['id'] == request_data['id']:
                         # print(data['response'])
+                        print(f"Response received for {data['id']}")
                         response = json.loads(data['response'])
                         redis_client.xack(RESPONSE_STREAM_NAME, RESPONSE_CONSUMER_GROUP, message_id)
                         print("Response received successfully")
@@ -248,4 +239,4 @@ def redis_communication(request_data):
                             print("Error: 'choices' field missing or invalid format in response")
                 
     
-    return "response.choices[0].message.content"
+    return "Error: Timeout reached while waiting for response"

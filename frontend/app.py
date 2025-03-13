@@ -2,14 +2,17 @@ import json
 import time
 import streamlit as st
 import requests, os, base64
-import pandas as pd
+from dotenv import load_dotenv
 from litellm import completion
 from io import StringIO
 from dotenv import load_dotenv
 
 load_dotenv()
 
-API_URL = "http://localhost:8000"
+load_dotenv()
+
+API_URL = os.getenv("API_DNS")
+# API_URL = "http://localhost:8000"
 
 if "page" not in st.session_state:
     st.session_state.page = "Document Parser"
