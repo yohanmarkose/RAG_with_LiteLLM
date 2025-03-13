@@ -8,15 +8,23 @@ import os
 load_dotenv()
 
 # Initialize Redis client
-redis_client = redis.Redis(host="localhost", port=6379, db=0, decode_responses=True)
+# redis_client = redis.Redis(host="redis-18117.c261.us-east-1-4.ec2.redns.redis-cloud.com", port=18117)
+
+redis_client = redis.Redis(
+    host=os.getenv("REDIS_HOST"),
+    port=os.getenv("REDIS_PORT"),
+    decode_responses=True,
+    username=os.getenv("REDIS_USERNAME"),
+    password=os.getenv("REDIS_PASSWORD"),
+)
 
 # Stream name in Redis
-REQUEST_STREAM_NAME = "request_stream"
-RESPONSE_STREAM_NAME = "response_stream"
-REQUEST_CONSUMER_GROUP = "request_group"
-RESPONSE_CONSUMER_GROUP = "request_group"
-REQUEST_CONSUMER_NAME = "Worker"
-RESPONSE_CONSUMER_NAME = "Response_Worker"
+REQUEST_STREAM_NAME = os.getenv("REQUEST_STREAM_NAME")
+RESPONSE_STREAM_NAME = os.getenv("RESPONSE_STREAM_NAME")
+REQUEST_CONSUMER_GROUP = os.getenv("REQUEST_CONSUMER_GROUP")
+RESPONSE_CONSUMER_GROUP = os.getenv("RESPONSE_CONSUMER_GROUP")
+REQUEST_CONSUMER_NAME = os.getenv("REQUEST_CONSUMER_NAME")
+RESPONSE_CONSUMER_NAME = os.getenv("RESPONSE_CONSUMER_NAME")
 
 
 # Create a consumer group if it doesn't exist (only need to be run once)
@@ -25,7 +33,6 @@ try:
 except redis.exceptions.ResponseError:
     # Consumer group already exists
     pass
-
 
 # Create a consumer group for the response stream if it doesn't exist (only need to be run once)
 try:
