@@ -18,8 +18,8 @@ COPY ./features /app/features
 COPY ./services /app/services
 
 # Expose port
-EXPOSE 8000
+EXPOSE 8080
 
 # Run FastAPI application
 # CMD ["bash", "-c", "uvicorn backend.app.main:app --host 0.0.0.0 --port 8000 & python backend/redis/worker.py"]
-CMD ["bash", "-c", "python backend/redis/worker.py & uvicorn backend.app.main:app --host 0.0.0.0 --port 8000"]
+CMD ["bash", "-c", "python backend/redis/worker.py & uvicorn backend.app.main:app --host 0.0.0.0 --port 8080"]
