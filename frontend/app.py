@@ -11,8 +11,8 @@ load_dotenv()
 
 load_dotenv()
 
-# API_URL = os.getenv("API_DNS")
-API_URL = "http://localhost:8000"
+API_URL = os.getenv("API_DNS")
+# API_URL = "http://localhost:8000"
 
 if "page" not in st.session_state:
     st.session_state.page = "Document Parser"
