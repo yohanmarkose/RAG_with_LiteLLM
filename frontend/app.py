@@ -11,7 +11,6 @@ load_dotenv()
 
 API_URL = "http://localhost:8000"
 
-
 if "page" not in st.session_state:
     st.session_state.page = "Document Parser"
 if "text_url" not in st.session_state:
@@ -34,15 +33,15 @@ if 'file_selected' not in st.session_state:
 def main():
     # Set up navigation
     st.sidebar.header("Main Menu")
+
     page = st.sidebar.radio("Choose a page:", ["Document Parser", "Chat with Documents"])
-    st.session_state.page = page
     
+    st.session_state.page = page    
     if page == "Document Parser":
         document_parser_page()
     elif page == "Chat with Documents":
         chat_page()
-
-
+    
 def document_parser_page():
     # Set the title of the app
     st.title("Select PDF for Parsing... 📃")
