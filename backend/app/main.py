@@ -75,7 +75,7 @@ def get_available_files():
     base_path = f"pdf/docling/"
     print(base_path)
     s3_obj = S3FileManager(AWS_BUCKET_NAME, base_path)
-    files = list({file.split('/')[-2] for file in s3_obj.list_files()})
+    files = list({file.split('/')[-2] for file in s3_obj.list_files() if not file.endswith('.png')})
     return {"files": files}
 
 @app.post("/select_pdfcontent")

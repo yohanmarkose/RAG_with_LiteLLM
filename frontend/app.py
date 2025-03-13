@@ -109,6 +109,7 @@ def chat_page():
                 }
             )
             if response.status_code == 200:
+                reset_state()
                 st.session_state.pdf_content = response.json()["content"]
             else:
                 st.error(f"Error in Upload: {response.text}")
@@ -121,24 +122,30 @@ def chat_page():
         st.sidebar.markdown("Not Selected ❌")
 
     # Define a callback function for the toggle
-    def toggle_mode():
-        st.session_state.mode = 'chat' if st.session_state.mode == 'preview' else 'preview'
-    
     if st.session_state.file_selected:
-        st.markdown("Preview / Chat")
-        st.toggle(
-            "Mode", 
-            value=(st.session_state.mode == 'chat'),
-            key="mode_toggle",
-            on_change=toggle_mode
+        mode_options = ["preview", "chat"]
+        current_index = 1 if st.session_state.mode == 'chat' else 0
+        
+        # callback function to ensure state updates correctly
+        def on_mode_change():
+            st.session_state.mode = st.session_state.mode_radio
+        selected_mode = st.radio(
+            "Mode",
+            options=mode_options,
+            index=current_index,
+            format_func=lambda x: "Preview" if x == "preview" else "Chat",
+            key="mode_radio",
+            on_change=on_mode_change,
+            horizontal=True
         )
-
-        if st.session_state.mode == 'preview':
+        current_mode = st.session_state.mode
+        
+        if current_mode == 'preview':
             st.session_state.preview_content = f"### {st.session_state.selected_file} - Preview \n\n {st.session_state.pdf_content}"
             st.markdown(st.session_state.preview_content)
 
         # Chat Functionality
-        if st.session_state.mode == 'chat':
+        if current_mode == 'chat':
             # Display chat messages
             for message in st.session_state.messages:
                 with st.chat_message(message["role"]):
@@ -203,49 +210,14 @@ def chat_page():
 
         # Reset chat button
         if st.sidebar.button("Reset Chat"):
-            st.session_state.messages = []
-            st.session_state.pdf_content = ""
-            st.session_state.preview_content = ""
-            st.session_state.mode = 'preview'
+            reset_state()
             st.session_state.file_selected = False
 
-
-def check_url(url):
-    try:
-        response = requests.head(url, timeout=5)  # Send HEAD request
-        if response.status_code == 200:
-            return True
-        return False
-    except requests.RequestException:
-        return False
-
-def convert_web_to_markdown(text_url):
-    progress_bar = st.progress(0)  
-    progress_text = st.empty()  
-    
-    progress_text.text("Starting conversion...")
-    progress_bar.progress(25)
-
-    response = requests.post(f"{API_URL}/scrape-url-docling", json={"url": text_url})
-    
-    progress_text.text("Processing request...")
-    progress_bar.progress(50)
-    
-    try:
-        if response.status_code == 200:
-            data = response.json()
-            progress_text.text("Finalizing output...")
-            progress_bar.progress(75)
-            st.subheader(data["message"])
-            st.markdown(data["scraped_content"], unsafe_allow_html=True)
-        else:
-            st.error("Server not responding.")
-    except:
-        st.error("An error occurred while processing the url")
-    
-    progress_bar.progress(100)
-    progress_text.empty()
-    progress_bar.empty()
+def reset_state():
+    st.session_state.messages = []
+    st.session_state.pdf_content = ""
+    st.session_state.preview_content = ""
+    st.session_state.mode = 'preview'
         
 def convert_PDF_to_markdown(file_upload):    
     progress_bar = st.progress(0)
