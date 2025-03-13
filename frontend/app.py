@@ -16,9 +16,15 @@ if "file_upload" not in st.session_state:
     st.session_state.file_upload = None
 if "messages" not in st.session_state:
     st.session_state.messages = []
-if "selected_files" not in st.session_state:
-    st.session_state.selected_files = ""
-
+if "selected_file" not in st.session_state:
+    st.session_state.selected_file = ""
+if "select_pdf" not in st.session_state:
+    st.session_state.select_pdf = ""
+if 'mode' not in st.session_state:
+    st.session_state.mode = 'preview'
+if 'preview_content' not in st.session_state:
+    st.session_state.preview_content = ''
+ 
 def main():
     # Set up navigation
     st.sidebar.header("Main Menu")
@@ -75,7 +81,7 @@ def chat_page():
 
     # Get available files from API
     try:
-        response = requests.get(f"{API_URL}/select_pdfcontent")
+        response = requests.get(f"{API_URL}/list_pdfcontent")
         if response.status_code == 200:
             available_files = response.json()["files"]
         else:
@@ -97,76 +103,120 @@ def chat_page():
     model_name = model_options[selected_model]
     
     # File selection
-    st.session_state.selected_files = st.sidebar.selectbox(
+    st.session_state.selected_file = st.sidebar.selectbox(
         "Select PDF for Context",
         options=available_files,
     )
     
-    if not st.session_state.selected_files:
+    if not st.session_state.selected_file:
         st.info("Please select a pdf from the sidebar to start chatting.")
         return
     
-    # Summarize button
-    if st.sidebar.button("Summarize"):
-        with st.spinner("Generating summary..."):
-            try:
-                response = requests.post(
-                    f"{API_URL}/summarize",
-                    json={
-                        "selected_files": st.session_state.selected_files,
-                        "model": model_name
-                    }
-                )
-                if response.status_code == 200:
-                    summary = response.json()["summary"]
-                    st.markdown("### Summary")
-                    st.markdown(summary)
-                else:
-                    st.error(f"Error generating summary: {response.text}")
-            except Exception as e:
-                st.sidebar.error(f"Error: {e}")
+    # Select PDF
+    if st.sidebar.button("Select"):
+        try:
+            response = requests.post(
+                f"{API_URL}/select_pdfcontent",
+                json={
+                    "selected_file": st.session_state.selected_file
+                }
+            )
+            if response.status_code == 200:
+                st.session_state.select_pdf = response.json()["content"]
+                st.sidebar.markdown("Selected ✅")
+            else:
+                st.error(f"Error in Upload: {response.text}")
+        except Exception as e:
+            st.sidebar.error(f"Error: {e}")
     
-    # Reset chat button
-    if st.sidebar.button("New Chat"):
-        st.session_state.messages = []
+    if st.session_state.select_pdf:
+        st.markdown("Preview / Chat")
+        mode = st.toggle("Mode", value=(st.session_state.mode == 'chat'))
+
+        if mode:
+            st.session_state.mode = 'chat'
+        else:
+            st.session_state.mode = 'preview'
+
+        if st.session_state.mode == 'preview':
+            if not st.session_state.select_pdf:
+                    st.markdown('Please select a file to preview')
+            st.session_state.preview_content = f"### {st.session_state.selected_file} - Preview \n\n {st.session_state.select_pdf}"
+            st.markdown(st.session_state.preview_content)
+
+        # Chat Functionality
+        elif st.session_state.mode == 'chat':
+            if not st.session_state.select_pdf:
+                    st.markdown('Please select a file to chat')
+            # Display chat messages
+            for message in st.session_state.messages:
+                with st.chat_message(message["role"]):
+                    st.markdown(message["content"])
+            
+            # Chat input
+            if prompt := st.chat_input("Ask a question about the documents..."):
+                # Add user message
+                st.session_state.messages.append({"role": "user", "content": prompt})
+                
+                with st.chat_message("user"):
+                    st.markdown(prompt)
+                
+                with st.chat_message("assistant"):
+                    with st.spinner("Thinking..."):
+                        try:
+                            response = requests.post(
+                                f"{API_URL}/ask_question",
+                                json={
+                                    "question": prompt,
+                                    "selected_file": st.session_state.select_pdf,
+                                    "model": model_name
+                                }
+                            )
+                            
+                            if response.status_code == 200:
+                                answer = response.json()["answer"]
+                                st.markdown(answer)
+                                st.session_state.messages.append({"role": "assistant", "content": answer})
+                            else:
+                                error_message = f"Error: {response.text}"
+                                st.error(error_message)
+                                st.session_state.messages.append({"role": "assistant", "content": error_message})
+                        except Exception as e:
+                            error_message = f"Error: {str(e)}"
+                            st.error(error_message)
+                            st.session_state.messages.append({"role": "assistant", "content": error_message})
+            # Summarize button
+            if st.sidebar.button("Summarize"):
+                if not st.session_state.select_pdf:
+                    st.markdown('Please select a file to summarize')
+                with st.chat_message("assistant"):
+                    with st.spinner("Generating Summary..."):
+                        try:
+                            response = requests.post(
+                                f"{API_URL}/summarize",
+                                json={
+                                    "selected_file": st.session_state.select_pdf,
+                                    "model": model_name
+                                }
+                            )
+                            if response.status_code == 200:
+                                summary = response.json()["summary"]
+                                st.markdown(answer)
+                                st.session_state.messages.append({"role": "assistant", "content": answer})
+                            else:
+                                error_message = f"Error: {response.text}"
+                                st.error(error_message)
+                                st.session_state.messages.append({"role": "assistant", "content": error_message})
+                        except Exception as e:
+                            error_message = f"Error: {str(e)}"
+                            st.error(error_message)
+                            st.session_state.messages.append({"role": "assistant", "content": error_message})
     
-    # Display chat messages
-    for message in st.session_state.messages:
-        with st.chat_message(message["role"]):
-            st.markdown(message["content"])
-    
-    # Chat input
-    if prompt := st.chat_input("Ask a question about the documents..."):
-        # Add user message
-        st.session_state.messages.append({"role": "user", "content": prompt})
-        
-        with st.chat_message("user"):
-            st.markdown(prompt)
-        
-        with st.chat_message("assistant"):
-            with st.spinner("Thinking..."):
-                try:
-                    response = requests.post(
-                        f"{API_URL}/ask_question",
-                        json={
-                            "question": prompt,
-                            "selected_files": st.session_state.selected_files,
-                            "model": model_name
-                        }
-                    )
-                    
-                    if response.status_code == 200:
-                        answer = response.json()["answer"]
-                        st.markdown(answer)
-                        st.session_state.messages.append({"role": "assistant", "content": answer})
-                    else:
-                        error_message = f"Error: {response.text}"
-                        st.error(error_message)
-                        st.session_state.messages.append({"role": "assistant", "content": error_message})
-                except Exception as e:
-                    error_message = f"Error: {str(e)}"
-                    st.error(error_message)
-                    st.session_state.messages.append({"role": "assistant", "content": error_message})
+        # Reset chat button
+        if st.sidebar.button("New Chat"):
+            st.session_state.messages = []
+            st.session_state.select_pdf = ""
+            st.session_state.preview_content = ""
 
 
 
