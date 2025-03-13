@@ -15,7 +15,6 @@ import base64
 import requests
 from bs4 import BeautifulSoup
 
-from redis import Redis
 import redis
 import uuid, time, json
 
@@ -38,16 +37,23 @@ SUPPORTED_MODELS = os.getenv("SUPPORTED_MODELS", "gpt-4o,gemini-1.5-pro").split(
 app = FastAPI()
 
 # Redis client setup
-# redis_client = Redis(host=os.getenv('REDIS_HOST', 'redis'), port=int(os.getenv('REDIS_PORT', 6379)))
-redis_client = redis.Redis(host="localhost", port=6379, db=0, decode_responses=True)
+# redis_client = redis.Redis(host="localhost", port=6379, db=0, decode_responses=True)
+
+redis_client = redis.Redis(
+    host=os.getenv("REDIS_HOST"),
+    port=os.getenv("REDIS_PORT"),
+    decode_responses=True,
+    username=os.getenv("REDIS_USERNAME"),
+    password=os.getenv("REDIS_PASSWORD"),
+)
 
 # Stream name in Redis
-REQUEST_STREAM_NAME = "request_stream"
-RESPONSE_STREAM_NAME = "response_stream"
-REQUEST_CONSUMER_GROUP = "request_group"
-RESPONSE_CONSUMER_GROUP = "request_group"
-REQUEST_CONSUMER_NAME = "Worker"
-RESPONSE_CONSUMER_NAME = "Response_Worker"
+REQUEST_STREAM_NAME = os.getenv("REQUEST_STREAM_NAME")
+RESPONSE_STREAM_NAME = os.getenv("RESPONSE_STREAM_NAME")
+REQUEST_CONSUMER_GROUP = os.getenv("REQUEST_CONSUMER_GROUP")
+RESPONSE_CONSUMER_GROUP = os.getenv("RESPONSE_CONSUMER_GROUP")
+REQUEST_CONSUMER_NAME = os.getenv("REQUEST_CONSUMER_NAME")
+RESPONSE_CONSUMER_NAME = os.getenv("RESPONSE_CONSUMER_NAME")
 
 class URLInput(BaseModel):
     url: str
