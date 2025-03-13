@@ -71,7 +71,9 @@ def read_root():
 
 @app.get("/list_pdfcontent", response_model=S3FileListResponse)
 def get_available_files():
-    base_path = base_path = f"pdf/docling/"
+    print("Getting available files")
+    base_path = f"pdf/docling/"
+    print(base_path)
     s3_obj = S3FileManager(AWS_BUCKET_NAME, base_path)
     files = list({file.split('/')[-2] for file in s3_obj.list_files()})
     return {"files": files}
@@ -237,4 +239,4 @@ def redis_communication(request_data):
                             print("Error: 'choices' field missing or invalid format in response")
                 
     
-    return "response.choices[0].message.content"
+    return "Error: Timeout reached while waiting for response"
