@@ -15,7 +15,6 @@ import base64
 import requests
 from bs4 import BeautifulSoup
 
-from redis import Redis
 import redis
 import uuid, time, json
 
@@ -35,20 +34,26 @@ GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 # Models Configuration (from environment variable or default)
 SUPPORTED_MODELS = os.getenv("SUPPORTED_MODELS", "gpt-4o,gemini-1.5-pro").split(",")
 
-
 app = FastAPI()
 
 # Redis client setup
-# redis_client = Redis(host=os.getenv('REDIS_HOST', 'redis'), port=int(os.getenv('REDIS_PORT', 6379)))
-redis_client = redis.Redis(host="localhost", port=6379, db=0, decode_responses=True)
+# redis_client = redis.Redis(host="localhost", port=6379, db=0, decode_responses=True)
+
+redis_client = redis.Redis(
+    host=os.getenv("REDIS_HOST"),
+    port=os.getenv("REDIS_PORT"),
+    decode_responses=True,
+    username=os.getenv("REDIS_USERNAME"),
+    password=os.getenv("REDIS_PASSWORD"),
+)
 
 # Stream name in Redis
-REQUEST_STREAM_NAME = "request_stream"
-RESPONSE_STREAM_NAME = "response_stream"
-REQUEST_CONSUMER_GROUP = "request_group"
-RESPONSE_CONSUMER_GROUP = "request_group"
-REQUEST_CONSUMER_NAME = "Worker"
-RESPONSE_CONSUMER_NAME = "Response_Worker"
+REQUEST_STREAM_NAME = os.getenv("REQUEST_STREAM_NAME")
+RESPONSE_STREAM_NAME = os.getenv("RESPONSE_STREAM_NAME")
+REQUEST_CONSUMER_GROUP = os.getenv("REQUEST_CONSUMER_GROUP")
+RESPONSE_CONSUMER_GROUP = os.getenv("RESPONSE_CONSUMER_GROUP")
+REQUEST_CONSUMER_NAME = os.getenv("REQUEST_CONSUMER_NAME")
+RESPONSE_CONSUMER_NAME = os.getenv("RESPONSE_CONSUMER_NAME")
 
 class URLInput(BaseModel):
     url: str
@@ -178,10 +183,6 @@ def get_pdf_content(request: QuestionRequest):
     return content
 
 def generate_model_response(model, messages):
-    # response = completion(
-    #     model=model,
-    #     messages=messages
-    # )
     request_data = {
         "id": str(uuid.uuid4()),  # Generate a unique request ID
         "model": model,  # Replace with an available model for LiteLLM
@@ -194,7 +195,6 @@ def generate_model_response(model, messages):
 
 def redis_communication(request_data):
     # Push request to Redis queue
-    # redis_client.rpush("request_queue", json.dumps(request_data))
     print("Pushing request to Redis Stream")
     
     # Serialize nested data (if any) before passing to Redis
@@ -237,22 +237,5 @@ def redis_communication(request_data):
                         else:
                             print("Error: 'choices' field missing or invalid format in response")
                 
-        # if response:
-        #     # response = json.loads(response)
-        #     response = json.loads(response[0][1][0][1])
-        #     if response["id"] == request_data["id"]:
-        #         # Extract message content safely
-        #         if "choices" in response and isinstance(response["choices"], list):
-        #             message_content = response["choices"][0].get("message", {}).get("content", "No content found")
-        #             print(f"Generated Response: {message_content}")
-        #             return message_content
-        #         else:
-        #             print("Error: 'choices' field missing or invalid format in response")
-            
-        #     break  # Exit loop once response is received
-        
-
-    # if not response:
-    #     return("Timeout: No response received within the specified time.")
     
     return "response.choices[0].message.content"
