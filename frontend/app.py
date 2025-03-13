@@ -95,9 +95,9 @@ def chat_page():
     
     model_options = {
         "OpenAI": "gpt-4o-mini",
-        "Anthropic": "claude-2",
+        "GROK xAI": "xai/grok-2-latest",
         "Gemini": "gemini/gemini-1.5-pro",
-        "HuggingFace": "huggingface/facebook/blenderbot-400M-distill"
+        "HuggingFace": "huggingface/Qwen/Qwen2.5-Coder-32B-Instruct"
     }
 
     # Model selection dropdown

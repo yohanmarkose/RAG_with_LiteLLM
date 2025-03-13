@@ -7,6 +7,8 @@ import os
 
 load_dotenv()
 
+litellm.success_callback = ["athina"]
+
 # Initialize Redis client
 # redis_client = redis.Redis(host="redis-18117.c261.us-east-1-4.ec2.redns.redis-cloud.com", port=18117)
 
@@ -38,11 +40,13 @@ except redis.exceptions.ResponseError:
 try:
     redis_client.xgroup_create(RESPONSE_STREAM_NAME, RESPONSE_CONSUMER_GROUP, id="0", mkstream=True)
 except redis.exceptions.ResponseError:
-    # Consumer group already exists
     pass
 
+ATHINA_API_KEY = os.environ["ATHINA_API_KEY"]
 OPENAI_API_KEY = os.environ["OPENAI_API_KEY"]
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+XAI_API_KEY = os.getenv("XAI_API_KEY")
+HUGGINGFACE_API_KEY = os.getenv("HUGGINGFACE_API_KEY")
 
 def process_requests():
     while True:
@@ -63,7 +67,7 @@ def process_requests():
 
                     response = litellm.completion(
                         model=model,
-                        messages=prompt,
+                        messages=prompt
                     )
                     
                     # Prepare the response data to be added to the response stream
