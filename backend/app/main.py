@@ -66,34 +66,44 @@ class PdfInput(BaseModel):
 class S3FileListResponse(BaseModel):
     files: List[str]
 
+class SelectPdfResponse(BaseModel):
+    selected_file: str
+
 class SummarizeRequest(BaseModel):
-    selected_files: str
+    selected_file: str
     model: str
 class QuestionRequest(BaseModel):
     question: str
-    selected_files: str
+    selected_file: str
     model: str
 
 @app.get("/")
 def read_root():
     return {"message": "Document Chat API: FastAPI Backend with Redis and LiteLLM is running"}
 
-@app.get("/select_pdfcontent", response_model=S3FileListResponse)
+@app.get("/list_pdfcontent", response_model=S3FileListResponse)
 def get_available_files():
     base_path = base_path = f"pdf/docling/"
     s3_obj = S3FileManager(AWS_BUCKET_NAME, base_path)
     files = list({file.split('/')[-2] for file in s3_obj.list_files()})
     return {"files": files}
 
+@app.post("/select_pdfcontent")
+def get_selected_pdf(request: SelectPdfResponse):
+    base_path = base_path = f"pdf/docling/"
+    s3_obj = S3FileManager(AWS_BUCKET_NAME, base_path)
+    file = f"{base_path}{request.selected_file}/extracted_data.md"
+    content = s3_obj.load_s3_file_content(file)
+    return {"content": content}
+
 @app.post("/summarize")
 def summarize_content(request: SummarizeRequest):
     try:
-        
-        content = get_pdf_content(request)
+        content = request.selected_file
 
         if not content:
             raise HTTPException(status_code=400, detail="No content found in selected files")
-
+        
         messages = [
             {"role": "system", "content": "You are a helpful assistant that summarizes document content."},
             {"role": "user", "content": f"Summarize the following document content in one sentence:\n\n{content}"}
@@ -111,8 +121,7 @@ def summarize_content(request: SummarizeRequest):
 @app.post("/ask_question")
 def ask_question(request: QuestionRequest):
     try:
-        
-        content = get_pdf_content(request)
+        content = request.selected_file
         
         if not content:
             raise HTTPException(status_code=400, detail="No content found in selected files")
@@ -178,7 +187,7 @@ def process_docling_url(url_input: URLInput):
 def get_pdf_content(request: QuestionRequest):
     base_path = base_path = f"pdf/docling/"
     s3_obj = S3FileManager(AWS_BUCKET_NAME, base_path)
-    file = f"{base_path}{request.selected_files}/extracted_data.md"
+    file = f"{base_path}{request.selected_file}/extracted_data.md"
     content = s3_obj.load_s3_file_content(file)
     return content
 
@@ -201,7 +210,8 @@ def redis_communication(request_data):
     for key, value in request_data.items():
         if isinstance(value, (dict, list)):
             request_data[key] = json.dumps(value)  # Convert dict/list to a JSON string
-        
+    
+    print("Adding data to stream...")
     redis_client.xadd(REQUEST_STREAM_NAME, request_data)
     
     print(f"Request {request_data['id']} pushed to Redis Stream!")
