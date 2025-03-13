@@ -100,6 +100,7 @@ def get_selected_pdf(request: SelectPdfResponse):
 def summarize_content(request: SummarizeRequest):
     try:
         content = request.selected_file
+
         if not content:
             raise HTTPException(status_code=400, detail="No content found in selected files")
         
@@ -209,7 +210,8 @@ def redis_communication(request_data):
     for key, value in request_data.items():
         if isinstance(value, (dict, list)):
             request_data[key] = json.dumps(value)  # Convert dict/list to a JSON string
-        
+    
+    print("Adding data to stream...")
     redis_client.xadd(REQUEST_STREAM_NAME, request_data)
     
     print(f"Request {request_data['id']} pushed to Redis Stream!")
