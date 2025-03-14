@@ -119,33 +119,176 @@ The backend utilizes various components for processing PDFs:
 Required Python Version 3.12.*
 ```
 
-### Cloning the Repository
+### 1. Cloning the Repository
 
 ```bash
 git clone https://github.com/BigDataIA-Spring2025-4/DAMG7245_Assignment04_Part01.git
 cd DAMG7245_Assignment04_Part01
 ```
 
-### Setting up the virtual environment
+### 2. Setting up the virtual environment
 
 ```bash
 python -m venv venvsource venv/bin/activate
 pip install -r requirements.txt
 ```
 
-### AWS S3 Setup
+### 3. AWS S3 Setup
 
-### LiteLLM Environment Setup
+**Step 1: Create an AWS Account**
 
-### Setting up Redis Streams
+- Go to [AWS Signup](https://aws.amazon.com/) and click **Create an AWS Account**.
+- Follow the instructions to enter your email, password, and billing details.
+- Verify your identity and choose a support plan.
 
-### Google Cloud SDK Setup
+**Step 2: Log in to AWS Management Console**
 
-### Deploying FastAPI Service on Google Cloud Run
+- Visit [AWS Console](https://aws.amazon.com/console/) and log in with your credentials.
+- Search for **S3** in the AWS services search bar and open it.
 
+**Step 3: Create an S3 Bucket**
+
+- Click **Create bucket**.
+- Enter a unique **Bucket name**.
+- Select a region closest to your users.
+- Configure settings as needed (e.g., versioning, encryption).
+- Click **Create bucket** to finalize.
+
+### 4. LiteLLM Environment Setup
+
+### 5. Setting up Redis Streams
+
+#### Prerequisites
+
+Before starting the setup, ensure the following prerequisites are met:
+
+- **Redis Cloud Account**: Create a free or paid account on [Redis Cloud](https://redis.com/redis-cloud/).
+- **Redis Cloud Database**: Create a Redis database on Redis Cloud.
+- **Python 3.7+**: Ensure Python is installed on your system.
+- **Redis Client Library**: Install `redis-py` and other necessary libraries for the backend and worker.
+
+#### Step 1: Create Redis Cloud Database
+
+1. **Sign In to Redis Cloud**: Go to [Redis Cloud](https://redis.com/redis-cloud/) and sign in or create a new account.
+   
+2. **Create a New Database**:
+   - Once signed in, navigate to **Databases** and click **Create a Database**.
+   - Select the region closest to your application.
+   - Choose the **Redis Essentials** plan (or a paid plan based on your usage).
+   - Click **Create Database**.
+   
+3. **Note the Connection Details**:
+   - After the database is created, Redis Cloud will provide the connection details (host, port, username, password). You will need these details to connect your application to the Redis Cloud instance.
+
+#### Step 2: Set Up Environment Variables
+
+Set the following environment variables for connecting to Redis Cloud in your application. Create a `.env` file in your project directory and add the account configuration details.
+
+#### Step 3: Monitor Redis Streams
+
+You can monitor the Redis Streams by using the `xread` command in the Redis CLI to view the contents of the **request** and **response** streams.
+
+To view the request stream:
+
+```bash
+redis-cli XREAD COUNT 10 STREAMS request_stream 0
+```
+
+To view the response stream:
+
+```bash
+redis-cli XREAD COUNT 10 STREAMS response_stream 0
+```
+
+### 6. Google Cloud SDK Setup
+
+**Step 1: Download and Install Google Cloud SDK**
+
+- Visit the [Google Cloud SDK documentation](https://cloud.google.com/sdk/docs/install) for platform-specific installation instructions.
+- Download the installer for your operating system (Windows, macOS, or Linux).
+- Follow the installation steps provided for your system.
+
+**Step 2: Initialize Google Cloud SDK**
+
+- Open a terminal or command prompt.
+- Run `gcloud init` to begin the setup process.
+- Follow the prompts to log in with your Google account and select a project.
+
+**Step 3: Verify Installation**
+
+- Run `gcloud --version` to confirm installation.
+- Use `gcloud config list` to check the active configuration.
+
+### 7. Deploying FastAPI Service on Google Cloud Run
+
+1. **Build the Docker Image**
+
+```docker
+# Build and tag your image (make sure you're in the project directory)
+docker build --platform=linux/amd64 --no-cache -t gcr.io/<YOUR_PROJECT_ID>/fastapi-app .
+```
+
+2. **Test Locally (Optional but Recommended)**
+
+```docker
+# Run the container locally
+docker run -p 8080:8080 gcr.io/<YOUR_PROJECT_ID>/fastapi-app
+
+# For Managing Environment Variables
+docker run --env-file .env -p 8080:8080 gcr.io/<YOUR_PROJECT_ID>/fastapi-app
+```
+
+Visit http://localhost:8080/docs to verify the API works.
+
+3. **Push to Google Container Registry**
+
+```docker
+# Push the image
+docker push gcr.io/<YOUR_PROJECT_ID>/fastapi-app
+```
+
+4. **Deploy to Cloud Run**
+
+```bash
+gcloud run deploy fastapi-service \
+  --image gcr.io/<YOUR_PROJECT_ID>/fastapi-app \
+  --platform managed \
+  --region us-central1 \
+  --allow-unauthenticated  
+```
+
+5. **Get your Service URL**
+
+```bash
+gcloud run services describe fastapi-service \
+  --platform managed \
+  --region <REGION> \
+  --format 'value(status.url)'
+```
+
+6. **Check Application Logs**
+
+```bash
+gcloud run services logs read fastapi-service --region <REGION>
+```
 
 ## Repository Structure
 
 ## References
 
+[Streamlit documentation](https://docs.streamlit.io/)
+
+[FastAPI Documentation](https://fastapi.tiangolo.com/)
+
+[Docling Documentation](https://ds4sd.github.io/docling/)
+
+[Redis Documentation](https://redis.io/docs/latest/develop/data-types/streams/)
+
+[LiteLLM Documentation](https://docs.litellm.ai/docs/)
+
+[Open AI Documentation](https://platform.openai.com/docs/models)
+
+[Gemini AI Documentation](https://docs.aimlapi.com/api-references/text-models-llm/google/gemini-1.5-pro)
+
+[Grok xAI Documentaiton](https://docs.x.ai/docs/tutorial)
 
