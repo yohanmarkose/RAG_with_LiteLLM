@@ -85,12 +85,13 @@ Video Walkthrough: [Video]()
 
 Users interact with the system through the **Streamlit frontend** or API calls, providing input in the form of:
 - **PDF content**: Users can upload a PDF document for content extraction and processing.
-- **SUummary**: Users can request summary of the uploaded document.
+- **Summary**: Users can request summary of the uploaded document.
 - **Query**: Users can ask questions related to the uploaded document.
 
 ### 2. Frontend (Streamlit)
 The frontend, built using **Streamlit**, provides a user-friendly interface for:
-- **Uploading PDFs** for content extraction and processing.
+- **Uploading PDFs** for content extraction.
+- **Selecting PDFs** for data processing
 - **Displaying summaries** of the uploaded PDF content.
 - **Allowing users to ask questions** based on the content of the uploaded document.
 
@@ -107,7 +108,7 @@ The **FastAPI** backend receives the user inputs and processes them:
 ### 4. Redis (Streams)
 Redis Streams are used for managing **asynchronous task processing**:
 - When a request is received by FastAPI, it is added to the **request stream**.
-- Requests are categorized and processed through the **consumer group**.
+- Requests are categorized and processed through the **consumer group** by the **redis worker threads**.
 - Once a request is processed, the response is added to the **response stream**.
 
 This approach decouples the request handling from immediate response generation, enabling scalable and efficient task management.
@@ -299,21 +300,23 @@ gcloud run services logs read fastapi-service --region <REGION>
 
 ## Repository Structure
 
+![Repository Structure](directorystructure.png)
+
 ## References
 
-[Streamlit documentation](https://docs.streamlit.io/)
+- [Streamlit documentation](https://docs.streamlit.io/)
 
-[FastAPI Documentation](https://fastapi.tiangolo.com/)
+- [FastAPI Documentation](https://fastapi.tiangolo.com/)
 
-[Docling Documentation](https://ds4sd.github.io/docling/)
+- [Docling Documentation](https://ds4sd.github.io/docling/)
 
-[Redis Documentation](https://redis.io/docs/latest/develop/data-types/streams/)
+- [Redis Documentation](https://redis.io/docs/latest/develop/data-types/streams/)
 
-[LiteLLM Documentation](https://docs.litellm.ai/docs/)
+- [LiteLLM Documentation](https://docs.litellm.ai/docs/)
 
-[Open AI Documentation](https://platform.openai.com/docs/models)
+- [Open AI Documentation](https://platform.openai.com/docs/models)
 
-[Gemini AI Documentation](https://docs.aimlapi.com/api-references/text-models-llm/google/gemini-1.5-pro)
+- [Gemini AI Documentation](https://docs.aimlapi.com/api-references/text-models-llm/google/gemini-1.5-pro)
 
-[Grok xAI Documentaiton](https://docs.x.ai/docs/tutorial)
+- [Grok xAI Documentaiton](https://docs.x.ai/docs/tutorial)
 
