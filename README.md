@@ -148,4 +148,19 @@ pip install -r requirements.txt
 
 ## References
 
+[Streamlit documentation](https://docs.streamlit.io/)
+
+[FastAPI Documentation](https://fastapi.tiangolo.com/)
+
+[Docling Documentation](https://ds4sd.github.io/docling/)
+
+[Redis Documentation](https://redis.io/docs/latest/develop/data-types/streams/)
+
+[LiteLLM Documentation](https://docs.litellm.ai/docs/)
+
+[Open AI Documentation](https://platform.openai.com/docs/models)
+
+[Gemini AI Documentation](https://docs.aimlapi.com/api-references/text-models-llm/google/gemini-1.5-pro)
+
+[Grok xAI Documentaiton](https://docs.x.ai/docs/tutorial)
 
