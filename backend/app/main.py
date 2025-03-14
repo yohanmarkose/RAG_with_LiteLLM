@@ -8,9 +8,7 @@ from datetime import datetime
 import base64
 # Docling imports
 from bs4 import BeautifulSoup
-
 from features.pdf_extraction.docling_pdf_extractor import pdf_docling_converter
-from features.web_extraction.docling_url_extractor import url_docling_converter
 
 # from services import s3
 from services.s3 import S3FileManager
@@ -75,7 +73,7 @@ def get_available_files():
     base_path = f"pdf/docling/"
     print(base_path)
     s3_obj = S3FileManager(AWS_BUCKET_NAME, base_path)
-    files = list({file.split('/')[-2] for file in s3_obj.list_files()})
+    files = list({file.split('/')[-2] for file in s3_obj.list_files() if not file.endswith('.png')})
     return {"files": files}
 
 @app.post("/select_pdfcontent")

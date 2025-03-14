@@ -1,11 +1,14 @@
+import json
 import time
 import streamlit as st
 import requests, os, base64
 from dotenv import load_dotenv
 from litellm import completion
 from io import StringIO
+from dotenv import load_dotenv
 
 load_dotenv()
+
 
 API_URL = os.getenv("API_DNS")
 # API_URL = "http://localhost:8000"
@@ -32,56 +35,54 @@ if 'file_selected' not in st.session_state:
 def main():
     # Set up navigation
     st.sidebar.header("Main Menu")
-    page = st.sidebar.radio("Choose a page:", ["Document Parser", "Chat with Documents"])
-    st.session_state.page = page
+
+    page = st.sidebar.radio("Choose a page:", ["Document Parser", "Chat with Documents","Logging Metrics"])
     
+    st.session_state.page = page    
     if page == "Document Parser":
         document_parser_page()
     elif page == "Chat with Documents":
         chat_page()
+    elif page == "Logging Metrics":
+        athina_logging()
 
+def athina_logging():
+    import streamlit as st
+
+    st.title("Athina Logging 📊")
+
+    st.info("⚠️ If you have trouble observe the logs open [Athina AI](https://app.athina.ai/) or try logging in via Email OTP option")
+    ATHINA_DATASET_URL = os.getenv("ATHINA_DATASET_URL")
+
+    st.markdown(
+        f"""
+        <iframe src="{ATHINA_DATASET_URL}" width="100%" height="700px" style="border:none;"></iframe>
+        """,
+        unsafe_allow_html=True,
+    )
+
+ 
+    
 def document_parser_page():
     # Set the title of the app
-    st.title("Markdown Chat - LLM")
-    # Add a sidebar
-    st.sidebar.header("Main Menu")
-    input_format = st.sidebar.selectbox("Choose a format:", ["WebURL", "PDF"])
-    
-    if "text_url" not in st.session_state:
-        st.session_state.text_url = ""
+    st.title("Select PDF for Parsing... 📃")
+            
     if "file_upload" not in st.session_state:
         st.session_state.file_upload = None
-
-    if input_format == "WebURL":
-        st.session_state.file_upload = None
-        st.session_state.text_url = st.text_input("Enter URL here")
-        convert = st.button("Process", use_container_width=True)
-    elif input_format == "PDF":
-        st.session_state.text_url = ""         
-        st.session_state.file_upload = st.file_uploader("Choose a PDF File", type="pdf", accept_multiple_files=False)    
-        convert = st.button("Process", use_container_width=True)
+      
+    st.session_state.file_upload = st.file_uploader("Choose a PDF File", type="pdf", accept_multiple_files=False)    
+    convert = st.button("Process", use_container_width=True)
         
     # Define what happens on each page
     if convert:
-        if input_format == "WebURL":
-            if st.session_state.text_url:
-                if check_url(st.session_state.text_url):
-                    st.success(f"The URL '{st.session_state.text_url}' exists and is accessible!")
-                    convert_web_to_markdown(st.session_state.text_url)
-                else:
-                    st.error(f"The URL '{st.session_state.text_url}' does not exist or is not accessible.")
-            else:
-                st.info("Please enter a URL.")
-    
-        elif input_format == "PDF":
-            if st.session_state.file_upload:
-                st.success(f"File '{st.session_state.file_upload.name}' uploaded successfully!")
-                convert_PDF_to_markdown(st.session_state.file_upload)
-            else:
-                st.info("Please upload a PDF file.")
+        if st.session_state.file_upload:
+            st.success(f"File '{st.session_state.file_upload.name}' uploaded successfully!")
+            convert_PDF_to_markdown(st.session_state.file_upload)
+        else:
+            st.info("Please upload a PDF file.")
             
 def chat_page():
-    st.title("Chat with Documents")
+    st.title("Chat with your parsed documents... 🤖")
 
     # Get available files from API
     try:
@@ -97,9 +98,9 @@ def chat_page():
     
     model_options = {
         "OpenAI": "gpt-4o-mini",
-        "Anthropic": "claude-2",
+        "GROK xAI": "xai/grok-2-latest",
         "Gemini": "gemini/gemini-1.5-pro",
-        "HuggingFace": "huggingface/facebook/blenderbot-400M-distill"
+        "HuggingFace": "huggingface/Qwen/Qwen2.5-Coder-32B-Instruct"
     }
 
     # Model selection dropdown
@@ -126,6 +127,7 @@ def chat_page():
                 }
             )
             if response.status_code == 200:
+                reset_state()
                 st.session_state.pdf_content = response.json()["content"]
             else:
                 st.error(f"Error in Upload: {response.text}")
@@ -138,24 +140,30 @@ def chat_page():
         st.sidebar.markdown("Not Selected ❌")
 
     # Define a callback function for the toggle
-    def toggle_mode():
-        st.session_state.mode = 'chat' if st.session_state.mode == 'preview' else 'preview'
-    
     if st.session_state.file_selected:
-        st.markdown("Preview / Chat")
-        st.toggle(
-            "Mode", 
-            value=(st.session_state.mode == 'chat'),
-            key="mode_toggle",
-            on_change=toggle_mode
+        mode_options = ["preview", "chat"]
+        current_index = 1 if st.session_state.mode == 'chat' else 0
+        
+        # callback function to ensure state updates correctly
+        def on_mode_change():
+            st.session_state.mode = st.session_state.mode_radio
+        selected_mode = st.radio(
+            "Mode",
+            options=mode_options,
+            index=current_index,
+            format_func=lambda x: "Preview" if x == "preview" else "Chat",
+            key="mode_radio",
+            on_change=on_mode_change,
+            horizontal=True
         )
-
-        if st.session_state.mode == 'preview':
+        current_mode = st.session_state.mode
+        
+        if current_mode == 'preview':
             st.session_state.preview_content = f"### {st.session_state.selected_file} - Preview \n\n {st.session_state.pdf_content}"
             st.markdown(st.session_state.preview_content)
 
         # Chat Functionality
-        if st.session_state.mode == 'chat':
+        if current_mode == 'chat':
             # Display chat messages
             for message in st.session_state.messages:
                 with st.chat_message(message["role"]):
@@ -220,49 +228,14 @@ def chat_page():
 
         # Reset chat button
         if st.sidebar.button("Reset Chat"):
-            st.session_state.messages = []
-            st.session_state.pdf_content = ""
-            st.session_state.preview_content = ""
-            st.session_state.mode = 'preview'
+            reset_state()
             st.session_state.file_selected = False
 
-
-def check_url(url):
-    try:
-        response = requests.head(url, timeout=5)  # Send HEAD request
-        if response.status_code == 200:
-            return True
-        return False
-    except requests.RequestException:
-        return False
-
-def convert_web_to_markdown(text_url):
-    progress_bar = st.progress(0)  
-    progress_text = st.empty()  
-    
-    progress_text.text("Starting conversion...")
-    progress_bar.progress(25)
-
-    response = requests.post(f"{API_URL}/scrape-url-docling", json={"url": text_url})
-    
-    progress_text.text("Processing request...")
-    progress_bar.progress(50)
-    
-    try:
-        if response.status_code == 200:
-            data = response.json()
-            progress_text.text("Finalizing output...")
-            progress_bar.progress(75)
-            st.subheader(data["message"])
-            st.markdown(data["scraped_content"], unsafe_allow_html=True)
-        else:
-            st.error("Server not responding.")
-    except:
-        st.error("An error occurred while processing the url")
-    
-    progress_bar.progress(100)
-    progress_text.empty()
-    progress_bar.empty()
+def reset_state():
+    st.session_state.messages = []
+    st.session_state.pdf_content = ""
+    st.session_state.preview_content = ""
+    st.session_state.mode = 'preview'
         
 def convert_PDF_to_markdown(file_upload):    
     progress_bar = st.progress(0)
