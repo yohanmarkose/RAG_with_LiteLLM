@@ -2,6 +2,30 @@
 
 ## Project Overview
 
+The project implements a Document Chat API that allows users to extract, store, and interact with document content using FastAPI, Redis, and LiteLLM. It provides functionalities for PDF data extraction, summarization, and question-answering based on document content.
+
+### Key Features:
+
+#### PDF Data Extraction
+
+- Extracts content from PDF files and web pages.
+- Stores extracted data in AWS S3 for accessibility.
+
+#### Summarization & Q&A System
+
+- Users can select a document and request a summary using an LLM model.
+- Users can ask questions about a document, and the system provides relevant answers.
+
+#### Asynchronous Processing with Redis
+
+- Uses Redis Streams for request-response handling.
+- Implements a Redis worker that processes user requests asynchronously.
+
+#### Cloud Storage & API Integration
+
+- Utilizes AWS S3 for file storage and retrieval.
+- Supports multiple AI models (OpenAI, Gemini) via LiteLLM.
+
 ## Team Members
 
 - Vedant Mane
