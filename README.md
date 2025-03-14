@@ -44,11 +44,11 @@ Backend FastAPI: [Google Cloud Run](https://fastapi-service-pz3ijhmorq-uc.a.run.
 
 Redis Endpoint: [Redis Streams](https://redis-18117.c261.us-east-1-4.ec2.redns.redis-cloud.com:18117)
 
-Google Codelab: [Codelab]()
+Google Codelab: [Codelab](https://codelabs-preview.appspot.com/?file_id=1VSZqfcHWDyt0TWmk74j5qKFdjj_-Jvd5r6RS67p0EK8#2)
 
-Google Docs: [Project Document]()
+Google Docs: [Project Document](https://docs.google.com/document/d/1VSZqfcHWDyt0TWmk74j5qKFdjj_-Jvd5r6RS67p0EK8/edit?tab=t.0#heading=h.a9zibfu2tfns)
 
-Video Walkthrough: [Video]()
+Video Walkthrough: [Video](https://northeastern-my.sharepoint.com/:v:/g/personal/gangurde_a_northeastern_edu/EcUvy0tObrRLm46rosWtimcBe07gg25wHZuVVzpzmrbQ-g?e=3oHFL2)
 
 
 ## Technologies Used
