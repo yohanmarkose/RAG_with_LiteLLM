@@ -76,6 +76,7 @@ The **FastAPI** backend receives the user inputs and processes them:
 - It manages document interactions with **Redis Streams** for asynchronous task processing.
 - FastAPI routes include:
   - **/upload_pdf**: To upload and process PDFs.
+  - **/select_pdf**: To select the PDF file for processing.
   - **/summarize**: To summarize document content.
   - **/ask-question**: To answer user queries based on the document content.
 
