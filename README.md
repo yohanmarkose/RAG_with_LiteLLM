@@ -158,6 +158,48 @@ pip install -r requirements.txt
 
 ### 5. Setting up Redis Streams
 
+#### Prerequisites
+
+Before starting the setup, ensure the following prerequisites are met:
+
+- **Redis Cloud Account**: Create a free or paid account on [Redis Cloud](https://redis.com/redis-cloud/).
+- **Redis Cloud Database**: Create a Redis database on Redis Cloud.
+- **Python 3.7+**: Ensure Python is installed on your system.
+- **Redis Client Library**: Install `redis-py` and other necessary libraries for the backend and worker.
+
+#### Step 1: Create Redis Cloud Database
+
+1. **Sign In to Redis Cloud**: Go to [Redis Cloud](https://redis.com/redis-cloud/) and sign in or create a new account.
+   
+2. **Create a New Database**:
+   - Once signed in, navigate to **Databases** and click **Create a Database**.
+   - Select the region closest to your application.
+   - Choose the **Redis Essentials** plan (or a paid plan based on your usage).
+   - Click **Create Database**.
+   
+3. **Note the Connection Details**:
+   - After the database is created, Redis Cloud will provide the connection details (host, port, username, password). You will need these details to connect your application to the Redis Cloud instance.
+
+#### Step 2: Set Up Environment Variables
+
+Set the following environment variables for connecting to Redis Cloud in your application. Create a `.env` file in your project directory and add the account configuration details.
+
+#### Step 3: Monitor Redis Streams
+
+You can monitor the Redis Streams by using the `xread` command in the Redis CLI to view the contents of the **request** and **response** streams.
+
+To view the request stream:
+
+```bash
+redis-cli XREAD COUNT 10 STREAMS request_stream 0
+```
+
+To view the response stream:
+
+```bash
+redis-cli XREAD COUNT 10 STREAMS response_stream 0
+```
+
 ### 6. Google Cloud SDK Setup
 
 **Step 1: Download and Install Google Cloud SDK**
