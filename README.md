@@ -2,6 +2,30 @@
 
 ## Project Overview
 
+The project implements a Document Chat API that allows users to extract, store, and interact with document content using FastAPI, Redis, and LiteLLM. It provides functionalities for PDF data extraction, summarization, and question-answering based on document content.
+
+### Key Features:
+
+#### PDF Data Extraction
+
+- Extracts content from PDF files and web pages.
+- Stores extracted data in AWS S3 for accessibility.
+
+#### Summarization & Q&A System
+
+- Users can select a document and request a summary using an LLM model.
+- Users can ask questions about a document, and the system provides relevant answers.
+
+#### Asynchronous Processing with Redis
+
+- Uses Redis Streams for request-response handling.
+- Implements a Redis worker that processes user requests asynchronously.
+
+#### Cloud Storage & API Integration
+
+- Utilizes AWS S3 for file storage and retrieval.
+- Supports multiple AI models (OpenAI, Gemini) via LiteLLM.
+
 ## Team Members
 
 - Vedant Mane
@@ -61,12 +85,13 @@ Video Walkthrough: [Video]()
 
 Users interact with the system through the **Streamlit frontend** or API calls, providing input in the form of:
 - **PDF content**: Users can upload a PDF document for content extraction and processing.
-- **SUummary**: Users can request summary of the uploaded document.
+- **Summary**: Users can request summary of the uploaded document.
 - **Query**: Users can ask questions related to the uploaded document.
 
 ### 2. Frontend (Streamlit)
 The frontend, built using **Streamlit**, provides a user-friendly interface for:
-- **Uploading PDFs** for content extraction and processing.
+- **Uploading PDFs** for content extraction.
+- **Selecting PDFs** for data processing
 - **Displaying summaries** of the uploaded PDF content.
 - **Allowing users to ask questions** based on the content of the uploaded document.
 
@@ -76,13 +101,14 @@ The **FastAPI** backend receives the user inputs and processes them:
 - It manages document interactions with **Redis Streams** for asynchronous task processing.
 - FastAPI routes include:
   - **/upload_pdf**: To upload and process PDFs.
+  - **/select_pdf**: To select the PDF file for processing.
   - **/summarize**: To summarize document content.
   - **/ask-question**: To answer user queries based on the document content.
 
 ### 4. Redis (Streams)
 Redis Streams are used for managing **asynchronous task processing**:
 - When a request is received by FastAPI, it is added to the **request stream**.
-- Requests are categorized and processed through the **consumer group**.
+- Requests are categorized and processed through the **consumer group** by the **redis worker threads**.
 - Once a request is processed, the response is added to the **response stream**.
 
 This approach decouples the request handling from immediate response generation, enabling scalable and efficient task management.
@@ -155,6 +181,38 @@ pip install -r requirements.txt
 - Click **Create bucket** to finalize.
 
 ### 4. LiteLLM Environment Setup
+
+#### Step 1: Install LiteLLM
+
+```bash
+pip install litellm
+```
+
+#### Step 2: Set Up API Keys
+
+LiteLLM supports multiple LLM providers like OpenAI, Azure, and Gemini. Ensure you have API keys for the respective services.
+
+Create a `.env` file and add the following:
+
+```ini
+OPENAI_API_KEY=your_openai_api_key
+GEMINI_API_KEY=your_gemini_api_key
+XAI_API_KEY=your_grok_api_key
+HUGGINGFACE_API_KEY=your_hugging_face_api_key
+```
+
+#### Step 3: Verify Installation
+
+Run the following command to ensure LiteLLM is installed correctly:
+
+```python
+import litellm
+response = litellm.completion(
+    model="gpt-3.5-turbo",
+    messages=[{"role": "user", "content": "Hello!"}]
+)
+print(response)
+```
 
 ### 5. Setting up Redis Streams
 
@@ -274,21 +332,23 @@ gcloud run services logs read fastapi-service --region <REGION>
 
 ## Repository Structure
 
+![Repository Structure](directorystructure.png)
+
 ## References
 
-[Streamlit documentation](https://docs.streamlit.io/)
+- [Streamlit documentation](https://docs.streamlit.io/)
 
-[FastAPI Documentation](https://fastapi.tiangolo.com/)
+- [FastAPI Documentation](https://fastapi.tiangolo.com/)
 
-[Docling Documentation](https://ds4sd.github.io/docling/)
+- [Docling Documentation](https://ds4sd.github.io/docling/)
 
-[Redis Documentation](https://redis.io/docs/latest/develop/data-types/streams/)
+- [Redis Documentation](https://redis.io/docs/latest/develop/data-types/streams/)
 
-[LiteLLM Documentation](https://docs.litellm.ai/docs/)
+- [LiteLLM Documentation](https://docs.litellm.ai/docs/)
 
-[Open AI Documentation](https://platform.openai.com/docs/models)
+- [Open AI Documentation](https://platform.openai.com/docs/models)
 
-[Gemini AI Documentation](https://docs.aimlapi.com/api-references/text-models-llm/google/gemini-1.5-pro)
+- [Gemini AI Documentation](https://docs.aimlapi.com/api-references/text-models-llm/google/gemini-1.5-pro)
 
-[Grok xAI Documentaiton](https://docs.x.ai/docs/tutorial)
+- [Grok xAI Documentaiton](https://docs.x.ai/docs/tutorial)
 
