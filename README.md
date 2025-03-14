@@ -182,6 +182,38 @@ pip install -r requirements.txt
 
 ### 4. LiteLLM Environment Setup
 
+#### Step 1: Install LiteLLM
+
+```bash
+pip install litellm
+```
+
+#### Step 2: Set Up API Keys
+
+LiteLLM supports multiple LLM providers like OpenAI, Azure, and Gemini. Ensure you have API keys for the respective services.
+
+Create a `.env` file and add the following:
+
+```ini
+OPENAI_API_KEY=your_openai_api_key
+GEMINI_API_KEY=your_gemini_api_key
+XAI_API_KEY=your_grok_api_key
+HUGGINGFACE_API_KEY=your_hugging_face_api_key
+```
+
+#### Step 3: Verify Installation
+
+Run the following command to ensure LiteLLM is installed correctly:
+
+```python
+import litellm
+response = litellm.completion(
+    model="gpt-3.5-turbo",
+    messages=[{"role": "user", "content": "Hello!"}]
+)
+print(response)
+```
+
 ### 5. Setting up Redis Streams
 
 #### Prerequisites
