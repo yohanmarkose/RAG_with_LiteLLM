@@ -1,8 +1,12 @@
-# DAMG7245_Assignment04_Part01
+# PDF Insights -  Chat with Docs
 
 ## Project Overview
 
 The project implements a Document Chat API that allows users to extract, store, and interact with document content using FastAPI, Redis, and LiteLLM. It provides functionalities for PDF data extraction, summarization, and question-answering based on document content.
+
+## Application Workflow Diagram
+
+![Application Workflow Diagram](diagram.png)
 
 ### Key Features:
 
@@ -26,15 +30,6 @@ The project implements a Document Chat API that allows users to extract, store, 
 - Utilizes AWS S3 for file storage and retrieval.
 - Supports multiple AI models (OpenAI, Gemini) via LiteLLM.
 
-## Team Members
-
-- Vedant Mane
-- Abhinav Gangurde
-- Yohan Markose
-
-## Attestation:
-
-WE ATTEST THAT WE HAVEN’T USED ANY OTHER STUDENTS’ WORK IN OUR ASSIGNMENT AND ABIDE BY THE POLICIES LISTED IN THE STUDENT HANDBOOK
 
 ## Resources
 
@@ -61,9 +56,6 @@ Video Walkthrough: [Video](https://northeastern-my.sharepoint.com/:v:/g/personal
 - **LiteLLM**: Model-agnostic interface for LLMs
 - **Google Cloud Run**: Backend Deployment
 
-## Application Workflow Diagram
-
-![Application Workflow Diagram](diagram.png)
 
 ### Workflow
 
